@@ -357,15 +357,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Instância não encontrada' });
       }
       
-      // Delete from Evolution API
+      // Delete from Evolution API first
       const whatsappService = getWhatsAppService();
       if (whatsappService) {
-        await whatsappService.deleteInstance(instance.instanceName);
+        const deleteResult = await whatsappService.deleteInstance(instance.instanceName);
+        if (!deleteResult.success) {
+          console.error('Error deleting from Evolution API:', deleteResult.error);
+          // Continue with database deletion even if Evolution API fails
+        } else {
+          console.log('Successfully deleted instance from Evolution API:', instance.instanceName);
+        }
       }
       
       // Delete from database
       await storage.deleteUserWhatsappInstance(instanceId, userId);
-      res.json({ message: 'Instância WhatsApp deletada com sucesso' });
+      res.json({ message: 'Instância WhatsApp excluída com sucesso' });
     } catch (error) {
       console.error('Error deleting WhatsApp instance:', error);
       res.status(500).json({ message: 'Erro ao deletar instância WhatsApp' });
@@ -412,7 +418,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Update phone number if available
-          if (instanceData.instance?.wuid) {
+          if (instanceData.ownerJid) {
+            phoneNumber = instanceData.ownerJid.replace('@s.whatsapp.net', '');
+          } else if (instanceData.instance?.wuid) {
             phoneNumber = instanceData.instance.wuid.replace('@c.us', '');
           }
         }

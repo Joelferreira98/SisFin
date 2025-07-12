@@ -290,6 +290,8 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
 
   async deleteInstance(instanceName: string): Promise<{ success: boolean; error?: string }> {
     try {
+      console.log(`Attempting to delete instance: ${instanceName}`);
+      
       const response = await fetch(`${this.config.apiUrl}/instance/delete/${instanceName}`, {
         method: 'DELETE',
         headers: {
@@ -300,9 +302,19 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
 
       if (!response.ok) {
         const errorData = await response.text();
+        console.log(`Delete response status: ${response.status}, data: ${errorData}`);
+        
+        // If it's a 404, the instance might already be deleted
+        if (response.status === 404) {
+          console.log(`Instance ${instanceName} not found in Evolution API (already deleted?)`);
+          return { success: true };
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
       }
 
+      const responseData = await response.json();
+      console.log(`Successfully deleted instance ${instanceName}:`, responseData);
       return { success: true };
     } catch (error) {
       console.error('Error deleting instance:', error);
