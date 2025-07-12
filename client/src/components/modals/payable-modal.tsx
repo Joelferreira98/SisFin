@@ -42,15 +42,15 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
   const form = useForm<InsertPayable>({
     resolver: zodResolver(insertPayableSchema),
     defaultValues: {
-      receiverId: 0,
-      description: "",
-      amount: "",
-      dueDate: new Date(),
-      status: "pending",
-      type: "single",
-      installmentNumber: undefined,
-      totalInstallments: undefined,
-      parentId: undefined,
+      receiverId: payable?.receiverId || 0,
+      description: payable?.description || "",
+      amount: payable?.amount || "",
+      dueDate: payable?.dueDate ? new Date(payable.dueDate) : new Date(),
+      status: payable?.status || "pending",
+      type: payable?.type || "single",
+      installmentNumber: payable?.installmentNumber || undefined,
+      totalInstallments: payable?.totalInstallments || undefined,
+      parentId: payable?.parentId || undefined,
     },
   });
 
@@ -151,10 +151,16 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
   }, [payable, form]);
 
   const onSubmit = (data: InsertPayable) => {
+    // Convert date to ISO string for API
+    const submitData = {
+      ...data,
+      dueDate: data.dueDate instanceof Date ? data.dueDate.toISOString() : data.dueDate,
+    };
+    
     if (payable) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(submitData);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(submitData);
     }
   };
 
@@ -163,8 +169,10 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
     onClose();
   };
 
-  const formatDateForInput = (date: Date) => {
-    return date.toISOString().split('T')[0];
+  const formatDateForInput = (date: Date | string) => {
+    if (!date) return '';
+    const dateObj = date instanceof Date ? date : new Date(date);
+    return dateObj.toISOString().split('T')[0];
   };
 
   return (
