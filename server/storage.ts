@@ -5,7 +5,7 @@ import {
   payables,
   whatsappMessages,
   type User,
-  type UpsertUser,
+  type InsertUser,
   type Client,
   type InsertClient,
   type Receivable,
@@ -19,37 +19,39 @@ import { db } from "./db";
 import { eq, and, desc, asc, sql, or } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (required for Replit Auth)
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  // User operations (required for custom auth)
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
   
   // Client operations
-  getClients(userId: string): Promise<Client[]>;
-  getClient(id: number, userId: string): Promise<Client | undefined>;
-  createClient(client: InsertClient, userId: string): Promise<Client>;
-  updateClient(id: number, client: Partial<InsertClient>, userId: string): Promise<Client>;
-  deleteClient(id: number, userId: string): Promise<void>;
+  getClients(userId: number): Promise<Client[]>;
+  getClient(id: number, userId: number): Promise<Client | undefined>;
+  createClient(client: InsertClient, userId: number): Promise<Client>;
+  updateClient(id: number, client: Partial<InsertClient>, userId: number): Promise<Client>;
+  deleteClient(id: number, userId: number): Promise<void>;
   
   // Receivable operations
-  getReceivables(userId: string): Promise<(Receivable & { client: Client })[]>;
-  getReceivable(id: number, userId: string): Promise<Receivable | undefined>;
-  createReceivable(receivable: InsertReceivable, userId: string): Promise<Receivable>;
-  updateReceivable(id: number, receivable: Partial<InsertReceivable>, userId: string): Promise<Receivable>;
-  deleteReceivable(id: number, userId: string): Promise<void>;
+  getReceivables(userId: number): Promise<(Receivable & { client: Client })[]>;
+  getReceivable(id: number, userId: number): Promise<Receivable | undefined>;
+  createReceivable(receivable: InsertReceivable, userId: number): Promise<Receivable>;
+  updateReceivable(id: number, receivable: Partial<InsertReceivable>, userId: number): Promise<Receivable>;
+  deleteReceivable(id: number, userId: number): Promise<void>;
   
   // Payable operations
-  getPayables(userId: string): Promise<(Payable & { receiver: Client })[]>;
-  getPayable(id: number, userId: string): Promise<Payable | undefined>;
-  createPayable(payable: InsertPayable, userId: string): Promise<Payable>;
-  updatePayable(id: number, payable: Partial<InsertPayable>, userId: string): Promise<Payable>;
-  deletePayable(id: number, userId: string): Promise<void>;
+  getPayables(userId: number): Promise<(Payable & { receiver: Client })[]>;
+  getPayable(id: number, userId: number): Promise<Payable | undefined>;
+  createPayable(payable: InsertPayable, userId: number): Promise<Payable>;
+  updatePayable(id: number, payable: Partial<InsertPayable>, userId: number): Promise<Payable>;
+  deletePayable(id: number, userId: number): Promise<void>;
   
   // WhatsApp operations
-  getWhatsappMessages(userId: string): Promise<(WhatsappMessage & { client: Client })[]>;
-  createWhatsappMessage(message: InsertWhatsappMessage, userId: string): Promise<WhatsappMessage>;
+  getWhatsappMessages(userId: number): Promise<(WhatsappMessage & { client: Client })[]>;
+  createWhatsappMessage(message: InsertWhatsappMessage, userId: number): Promise<WhatsappMessage>;
   
   // Dashboard operations
-  getDashboardData(userId: string): Promise<{
+  getDashboardData(userId: number): Promise<{
     totalReceivable: number;
     totalPayable: number;
     totalOverdue: number;
@@ -61,28 +63,31 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User operations
-  async getUser(id: string): Promise<User | undefined> {
+  async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
       .returning();
     return user;
   }
 
   // Client operations
-  async getClients(userId: string): Promise<Client[]> {
+  async getClients(userId: number): Promise<Client[]> {
     return await db
       .select()
       .from(clients)
@@ -90,7 +95,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(clients.name));
   }
 
-  async getClient(id: number, userId: string): Promise<Client | undefined> {
+  async getClient(id: number, userId: number): Promise<Client | undefined> {
     const [client] = await db
       .select()
       .from(clients)
@@ -98,7 +103,7 @@ export class DatabaseStorage implements IStorage {
     return client;
   }
 
-  async createClient(client: InsertClient, userId: string): Promise<Client> {
+  async createClient(client: InsertClient, userId: number): Promise<Client> {
     const [newClient] = await db
       .insert(clients)
       .values({ ...client, userId })
@@ -106,7 +111,7 @@ export class DatabaseStorage implements IStorage {
     return newClient;
   }
 
-  async updateClient(id: number, client: Partial<InsertClient>, userId: string): Promise<Client> {
+  async updateClient(id: number, client: Partial<InsertClient>, userId: number): Promise<Client> {
     const [updatedClient] = await db
       .update(clients)
       .set({ ...client, updatedAt: new Date() })
@@ -115,14 +120,14 @@ export class DatabaseStorage implements IStorage {
     return updatedClient;
   }
 
-  async deleteClient(id: number, userId: string): Promise<void> {
+  async deleteClient(id: number, userId: number): Promise<void> {
     await db
       .delete(clients)
       .where(and(eq(clients.id, id), eq(clients.userId, userId)));
   }
 
   // Receivable operations
-  async getReceivables(userId: string): Promise<(Receivable & { client: Client })[]> {
+  async getReceivables(userId: number): Promise<(Receivable & { client: Client })[]> {
     return await db
       .select({
         id: receivables.id,
@@ -138,7 +143,20 @@ export class DatabaseStorage implements IStorage {
         parentId: receivables.parentId,
         createdAt: receivables.createdAt,
         updatedAt: receivables.updatedAt,
-        client: clients,
+        client: {
+          id: clients.id,
+          name: clients.name,
+          whatsapp: clients.whatsapp,
+          document: clients.document,
+          email: clients.email,
+          address: clients.address,
+          zipCode: clients.zipCode,
+          city: clients.city,
+          state: clients.state,
+          userId: clients.userId,
+          createdAt: clients.createdAt,
+          updatedAt: clients.updatedAt,
+        },
       })
       .from(receivables)
       .innerJoin(clients, eq(receivables.clientId, clients.id))
@@ -146,7 +164,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(receivables.dueDate));
   }
 
-  async getReceivable(id: number, userId: string): Promise<Receivable | undefined> {
+  async getReceivable(id: number, userId: number): Promise<Receivable | undefined> {
     const [receivable] = await db
       .select()
       .from(receivables)
@@ -154,7 +172,7 @@ export class DatabaseStorage implements IStorage {
     return receivable;
   }
 
-  async createReceivable(receivable: InsertReceivable, userId: string): Promise<Receivable> {
+  async createReceivable(receivable: InsertReceivable, userId: number): Promise<Receivable> {
     const [newReceivable] = await db
       .insert(receivables)
       .values({ ...receivable, userId })
@@ -162,7 +180,7 @@ export class DatabaseStorage implements IStorage {
     return newReceivable;
   }
 
-  async updateReceivable(id: number, receivable: Partial<InsertReceivable>, userId: string): Promise<Receivable> {
+  async updateReceivable(id: number, receivable: Partial<InsertReceivable>, userId: number): Promise<Receivable> {
     const [updatedReceivable] = await db
       .update(receivables)
       .set({ ...receivable, updatedAt: new Date() })
@@ -171,14 +189,14 @@ export class DatabaseStorage implements IStorage {
     return updatedReceivable;
   }
 
-  async deleteReceivable(id: number, userId: string): Promise<void> {
+  async deleteReceivable(id: number, userId: number): Promise<void> {
     await db
       .delete(receivables)
       .where(and(eq(receivables.id, id), eq(receivables.userId, userId)));
   }
 
   // Payable operations
-  async getPayables(userId: string): Promise<(Payable & { receiver: Client })[]> {
+  async getPayables(userId: number): Promise<(Payable & { receiver: Client })[]> {
     return await db
       .select({
         id: payables.id,
@@ -194,7 +212,20 @@ export class DatabaseStorage implements IStorage {
         parentId: payables.parentId,
         createdAt: payables.createdAt,
         updatedAt: payables.updatedAt,
-        receiver: clients,
+        receiver: {
+          id: clients.id,
+          name: clients.name,
+          whatsapp: clients.whatsapp,
+          document: clients.document,
+          email: clients.email,
+          address: clients.address,
+          zipCode: clients.zipCode,
+          city: clients.city,
+          state: clients.state,
+          userId: clients.userId,
+          createdAt: clients.createdAt,
+          updatedAt: clients.updatedAt,
+        },
       })
       .from(payables)
       .innerJoin(clients, eq(payables.receiverId, clients.id))
@@ -202,7 +233,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(payables.dueDate));
   }
 
-  async getPayable(id: number, userId: string): Promise<Payable | undefined> {
+  async getPayable(id: number, userId: number): Promise<Payable | undefined> {
     const [payable] = await db
       .select()
       .from(payables)
@@ -210,7 +241,7 @@ export class DatabaseStorage implements IStorage {
     return payable;
   }
 
-  async createPayable(payable: InsertPayable, userId: string): Promise<Payable> {
+  async createPayable(payable: InsertPayable, userId: number): Promise<Payable> {
     const [newPayable] = await db
       .insert(payables)
       .values({ ...payable, userId })
@@ -218,7 +249,7 @@ export class DatabaseStorage implements IStorage {
     return newPayable;
   }
 
-  async updatePayable(id: number, payable: Partial<InsertPayable>, userId: string): Promise<Payable> {
+  async updatePayable(id: number, payable: Partial<InsertPayable>, userId: number): Promise<Payable> {
     const [updatedPayable] = await db
       .update(payables)
       .set({ ...payable, updatedAt: new Date() })
@@ -227,24 +258,37 @@ export class DatabaseStorage implements IStorage {
     return updatedPayable;
   }
 
-  async deletePayable(id: number, userId: string): Promise<void> {
+  async deletePayable(id: number, userId: number): Promise<void> {
     await db
       .delete(payables)
       .where(and(eq(payables.id, id), eq(payables.userId, userId)));
   }
 
   // WhatsApp operations
-  async getWhatsappMessages(userId: string): Promise<(WhatsappMessage & { client: Client })[]> {
+  async getWhatsappMessages(userId: number): Promise<(WhatsappMessage & { client: Client })[]> {
     return await db
       .select({
         id: whatsappMessages.id,
         userId: whatsappMessages.userId,
         clientId: whatsappMessages.clientId,
         content: whatsappMessages.content,
-        templateType: whatsappMessages.templateType,
         status: whatsappMessages.status,
+        templateType: whatsappMessages.templateType,
         sentAt: whatsappMessages.sentAt,
-        client: clients,
+        client: {
+          id: clients.id,
+          name: clients.name,
+          whatsapp: clients.whatsapp,
+          document: clients.document,
+          email: clients.email,
+          address: clients.address,
+          zipCode: clients.zipCode,
+          city: clients.city,
+          state: clients.state,
+          userId: clients.userId,
+          createdAt: clients.createdAt,
+          updatedAt: clients.updatedAt,
+        },
       })
       .from(whatsappMessages)
       .innerJoin(clients, eq(whatsappMessages.clientId, clients.id))
@@ -252,16 +296,16 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(whatsappMessages.sentAt));
   }
 
-  async createWhatsappMessage(message: InsertWhatsappMessage, userId: string): Promise<WhatsappMessage> {
+  async createWhatsappMessage(message: InsertWhatsappMessage, userId: number): Promise<WhatsappMessage> {
     const [newMessage] = await db
       .insert(whatsappMessages)
-      .values({ ...message, userId })
+      .values({ ...message, userId, sentAt: new Date() })
       .returning();
     return newMessage;
   }
 
   // Dashboard operations
-  async getDashboardData(userId: string): Promise<{
+  async getDashboardData(userId: number): Promise<{
     totalReceivable: number;
     totalPayable: number;
     totalOverdue: number;
@@ -269,32 +313,40 @@ export class DatabaseStorage implements IStorage {
     upcomingPayments: (Receivable & { client: Client })[];
     recentActivities: any[];
   }> {
-    const now = new Date();
-    const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
+    const today = new Date();
+    
     // Get total receivables
     const totalReceivableResult = await db
-      .select({ total: sql<number>`sum(${receivables.amount})` })
+      .select({
+        total: sql<number>`COALESCE(SUM(CAST(${receivables.amount} AS DECIMAL)), 0)`,
+      })
       .from(receivables)
       .where(and(eq(receivables.userId, userId), eq(receivables.status, 'pending')));
 
     // Get total payables
     const totalPayableResult = await db
-      .select({ total: sql<number>`sum(${payables.amount})` })
+      .select({
+        total: sql<number>`COALESCE(SUM(CAST(${payables.amount} AS DECIMAL)), 0)`,
+      })
       .from(payables)
       .where(and(eq(payables.userId, userId), eq(payables.status, 'pending')));
 
     // Get overdue receivables
-    const totalOverdueResult = await db
-      .select({ total: sql<number>`sum(${receivables.amount})` })
+    const overdueResult = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(CAST(${receivables.amount} AS DECIMAL)), 0)`,
+      })
       .from(receivables)
       .where(and(
         eq(receivables.userId, userId),
         eq(receivables.status, 'pending'),
-        sql`${receivables.dueDate} < ${now}`
+        sql`${receivables.dueDate} < ${today}`
       ));
 
-    // Get upcoming payments
+    // Get upcoming payments (next 30 days)
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
     const upcomingPayments = await db
       .select({
         id: receivables.id,
@@ -310,21 +362,34 @@ export class DatabaseStorage implements IStorage {
         parentId: receivables.parentId,
         createdAt: receivables.createdAt,
         updatedAt: receivables.updatedAt,
-        client: clients,
+        client: {
+          id: clients.id,
+          name: clients.name,
+          whatsapp: clients.whatsapp,
+          document: clients.document,
+          email: clients.email,
+          address: clients.address,
+          zipCode: clients.zipCode,
+          city: clients.city,
+          state: clients.state,
+          userId: clients.userId,
+          createdAt: clients.createdAt,
+          updatedAt: clients.updatedAt,
+        },
       })
       .from(receivables)
       .innerJoin(clients, eq(receivables.clientId, clients.id))
       .where(and(
         eq(receivables.userId, userId),
         eq(receivables.status, 'pending'),
-        sql`${receivables.dueDate} <= ${nextWeek}`
+        sql`${receivables.dueDate} BETWEEN ${today} AND ${thirtyDaysFromNow}`
       ))
       .orderBy(asc(receivables.dueDate))
-      .limit(5);
+      .limit(10);
 
-    const totalReceivable = totalReceivableResult[0]?.total || 0;
-    const totalPayable = totalPayableResult[0]?.total || 0;
-    const totalOverdue = totalOverdueResult[0]?.total || 0;
+    const totalReceivable = Number(totalReceivableResult[0]?.total || 0);
+    const totalPayable = Number(totalPayableResult[0]?.total || 0);
+    const totalOverdue = Number(overdueResult[0]?.total || 0);
     const balance = totalReceivable - totalPayable;
 
     return {
@@ -333,7 +398,7 @@ export class DatabaseStorage implements IStorage {
       totalOverdue,
       balance,
       upcomingPayments,
-      recentActivities: [], // This would be populated with actual activities
+      recentActivities: [], // This can be implemented later
     };
   }
 }

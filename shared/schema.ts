@@ -25,13 +25,14 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// User storage table for local authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  id: serial("id").primaryKey(),
+  username: varchar("username").unique().notNull(),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -39,7 +40,7 @@ export const users = pgTable("users", {
 // Clients table
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   name: varchar("name").notNull(),
   whatsapp: varchar("whatsapp").notNull(),
   document: varchar("document").notNull(), // CPF or CNPJ
@@ -55,7 +56,7 @@ export const clients = pgTable("clients", {
 // Accounts Receivable table
 export const receivables = pgTable("receivables", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   clientId: integer("client_id").notNull().references(() => clients.id),
   description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
@@ -72,7 +73,7 @@ export const receivables = pgTable("receivables", {
 // Accounts Payable table
 export const payables = pgTable("payables", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   receiverId: integer("receiver_id").notNull().references(() => clients.id),
   description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
@@ -89,7 +90,7 @@ export const payables = pgTable("payables", {
 // WhatsApp Messages table
 export const whatsappMessages = pgTable("whatsapp_messages", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   clientId: integer("client_id").notNull().references(() => clients.id),
   content: text("content").notNull(),
   templateType: varchar("template_type"), // reminder, overdue, custom
@@ -132,6 +133,12 @@ export const whatsappMessagesRelations = relations(whatsappMessages, ({ one }) =
 }));
 
 // Zod schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertClientSchema = createInsertSchema(clients).omit({
   id: true,
   userId: true,
@@ -160,8 +167,8 @@ export const insertWhatsappMessageSchema = createInsertSchema(whatsappMessages).
 });
 
 // Types
-export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Client = typeof clients.$inferSelect;
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type Receivable = typeof receivables.$inferSelect;

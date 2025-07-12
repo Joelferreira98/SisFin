@@ -9,10 +9,10 @@ import {
 } from "lucide-react";
 
 export default function Header() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
 
   const handleLogout = () => {
-    window.location.href = "/api/logout";
+    logoutMutation.mutate();
   };
 
   return (
