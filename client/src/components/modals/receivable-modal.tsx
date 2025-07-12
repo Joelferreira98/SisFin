@@ -485,9 +485,9 @@ export default function ReceivableModal({ isOpen, onClose, receivable }: Receiva
               <Button 
                 type="submit" 
                 disabled={createMutation.isPending || updateMutation.isPending}
-                className="bg-success hover:bg-success/90"
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
-                {receivable ? "Atualizar" : "Criar"} Conta
+                {createMutation.isPending || updateMutation.isPending ? "Salvando..." : (receivable ? "Atualizar" : "Criar")} Conta
               </Button>
             </div>
           </form>
