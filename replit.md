@@ -85,6 +85,23 @@ The application uses a well-structured PostgreSQL schema with the following main
    - Automated message generation based on templates
    - Message delivery tracking and logging
 
+## Key Features
+
+### Installment Sales System
+- **Digital Signature Workflow**: Clients can confirm sales by uploading document photos
+- **Approval Process**: Admins can approve/reject sales with notes
+- **Status Tracking**: Pending → Confirmed → Approved/Rejected workflow
+- **Image Compression**: Automatic image compression to handle large files
+- **Secure Tokens**: Unique confirmation tokens for each sale
+- **Real-time Updates**: Live status updates via TanStack Query
+
+### Payment Confirmation Flow
+1. **Sale Creation**: Admin creates installment sale and generates confirmation link
+2. **Client Confirmation**: Client accesses public confirmation page via token
+3. **Document Upload**: Client uploads compressed document photo as digital signature
+4. **Admin Review**: Admin reviews submitted document and approves/rejects
+5. **Status Updates**: Real-time status tracking throughout the process
+
 ## External Dependencies
 
 ### Database
@@ -102,6 +119,7 @@ The application uses a well-structured PostgreSQL schema with the following main
 - **Icons**: Lucide React icons
 - **Validation**: Zod schema validation
 - **HTTP Client**: Fetch API with TanStack Query
+- **Image Processing**: Canvas API for image compression
 
 ### Development Tools
 - **Build**: Vite with React plugin
@@ -132,3 +150,29 @@ The application uses a well-structured PostgreSQL schema with the following main
 - **Tailwind Config**: Custom design system configuration
 
 The application follows a modern full-stack architecture with clear separation of concerns, type safety throughout, and a focus on developer experience and user interface quality.
+
+## Recent Updates (July 12, 2025)
+
+### Installment Sales System Implementation
+- **New Features**: Complete installment sales management system with digital signature workflow
+- **Database Schema**: Added installment_sales table with comprehensive status tracking
+- **API Endpoints**: Full CRUD operations for installment sales with approval workflow
+- **Frontend Components**: Dedicated management interface and public confirmation page
+- **Image Handling**: Implemented image compression and payload size optimization (10MB limit)
+- **Security**: Secure token-based confirmation system with proper authentication
+
+### Technical Improvements
+- **Payload Optimization**: Increased server payload limit to 10MB for image uploads
+- **Image Compression**: Client-side image compression using Canvas API
+- **Error Handling**: Comprehensive error handling for large file uploads
+- **Status Management**: Four-state workflow (pending → confirmed → approved/rejected)
+- **Real-time Updates**: Live status updates via TanStack Query invalidation
+
+### User Interface Enhancements
+- **Tabbed Interface**: Organized sales by status with clear visual indicators
+- **Modal Workflows**: Intuitive modal-based forms for creation and approval
+- **Image Preview**: Real-time image preview with compression feedback
+- **Responsive Design**: Mobile-friendly confirmation page for client access
+- **Navigation**: Added "Vendas Parceladas" to main navigation menu
+
+The installment sales system is now fully operational with comprehensive digital signature workflow, admin approval process, and real-time status tracking.

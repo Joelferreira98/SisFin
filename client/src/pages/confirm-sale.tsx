@@ -68,16 +68,50 @@ export default function ConfirmSale() {
     },
   });
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Function to compress image
+  const compressImage = (file: File, maxWidth: number = 1024, quality: number = 0.8): Promise<string> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions
+        const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+        const width = img.width * ratio;
+        const height = img.height * ratio;
+        
+        // Set canvas size
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.type.startsWith("image/")) {
         setSelectedFile(file);
-        const reader = new FileReader();
-        reader.onload = () => {
-          setPreviewUrl(reader.result as string);
-        };
-        reader.readAsDataURL(file);
+        
+        // Compress the image before setting preview
+        try {
+          const compressedDataUrl = await compressImage(file);
+          setPreviewUrl(compressedDataUrl);
+        } catch (error) {
+          toast({
+            title: "Erro",
+            description: "Erro ao processar a imagem",
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Erro",
