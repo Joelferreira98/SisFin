@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,9 +54,11 @@ export default function AuthPage() {
   });
 
   // Redirect if already logged in
-  if (user) {
-    setLocation("/");
-  }
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   const onLogin = async (data: LoginFormData) => {
     try {
@@ -65,7 +67,7 @@ export default function AuthPage() {
         title: "Login realizado com sucesso",
         description: "Bem-vindo de volta!",
       });
-      setLocation("/");
+      // Redirecionamento será feito automaticamente pelo useEffect
     } catch (error) {
       console.error("Login error:", error);
     }
@@ -79,7 +81,7 @@ export default function AuthPage() {
         title: "Conta criada com sucesso",
         description: "Sua conta foi criada e você já está logado!",
       });
-      setLocation("/");
+      // Redirecionamento será feito automaticamente pelo useEffect
     } catch (error) {
       console.error("Register error:", error);
     }
