@@ -22,7 +22,11 @@ export default function WhatsAppInstanceManager() {
     instanceName: "",
     displayName: "",
     phoneNumber: "",
+    useQrCode: true,
+    token: ""
   });
+
+  const [qrCodeData, setQrCodeData] = useState<any>(null);
 
   // Query para buscar instâncias do usuário
   const { data: instances, isLoading } = useQuery({
@@ -36,14 +40,24 @@ export default function WhatsAppInstanceManager() {
       const res = await apiRequest('POST', '/api/whatsapp/instances', instanceData);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/whatsapp/instances'] });
-      setIsCreateModalOpen(false);
-      setNewInstance({ instanceName: "", displayName: "", phoneNumber: "" });
-      toast({
-        title: "Sucesso!",
-        description: "Instância WhatsApp criada com sucesso",
-      });
+      
+      if (data.qrCodeData && data.qrCodeData.base64) {
+        // Mostra QR code para escaneamento
+        setQrCodeData(data.qrCodeData);
+        toast({
+          title: "QR Code Gerado!",
+          description: "Escaneie o QR code com seu WhatsApp para conectar",
+        });
+      } else {
+        setIsCreateModalOpen(false);
+        setNewInstance({ instanceName: "", displayName: "", phoneNumber: "", useQrCode: true, token: "" });
+        toast({
+          title: "Sucesso!",
+          description: "Instância WhatsApp criada com sucesso",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -206,18 +220,84 @@ export default function WhatsAppInstanceManager() {
                         const value = e.target.value.replace(/[^\d\.@\w-]/g, '');
                         setNewInstance({...newInstance, phoneNumber: value});
                       }}
+                      disabled={newInstance.useQrCode}
                     />
                     <p className="text-sm text-gray-500 mt-1">
-                      Formato aceito: números seguidos por .@\w- (ex: 5511999999999)
+                      {newInstance.useQrCode ? "Não usado com QR Code" : "Formato aceito: números seguidos por .@\w- (ex: 5511999999999)"}
                     </p>
                   </div>
-                  <Button 
-                    onClick={handleCreateInstance}
-                    disabled={createInstanceMutation.isPending}
-                    className="w-full"
-                  >
-                    {createInstanceMutation.isPending ? "Criando..." : "Criar Instância"}
-                  </Button>
+                  <div>
+                    <Label htmlFor="token">Token (opcional)</Label>
+                    <Input
+                      id="token"
+                      placeholder="Deixe em branco para usar padrão"
+                      value={newInstance.token}
+                      onChange={(e) => setNewInstance({...newInstance, token: e.target.value})}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="useQrCode"
+                      checked={newInstance.useQrCode}
+                      onChange={(e) => setNewInstance({...newInstance, useQrCode: e.target.checked})}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <Label htmlFor="useQrCode">Usar QR Code (WhatsApp-Baileys)</Label>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    {newInstance.useQrCode 
+                      ? "Será gerado um QR Code para escaneamento com WhatsApp" 
+                      : "Conexão direta sem QR Code (Evolution)"}
+                  </p>
+                  {qrCodeData && qrCodeData.base64 ? (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <h3 className="font-semibold mb-2">QR Code para Conexão</h3>
+                        <div className="flex justify-center">
+                          <img 
+                            src={qrCodeData.base64} 
+                            alt="QR Code WhatsApp" 
+                            className="max-w-64 max-h-64 border rounded"
+                          />
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2">
+                          Escaneie este QR code com seu WhatsApp para conectar a instância
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => {
+                            setQrCodeData(null);
+                            setIsCreateModalOpen(false);
+                            setNewInstance({ instanceName: "", displayName: "", phoneNumber: "", useQrCode: true, token: "" });
+                          }}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          Fechar
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            // Regenerar QR code
+                            handleCreateInstance();
+                          }}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          Gerar Novo QR
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button 
+                      onClick={handleCreateInstance}
+                      disabled={createInstanceMutation.isPending}
+                      className="w-full"
+                    >
+                      {createInstanceMutation.isPending ? "Criando..." : "Criar Instância"}
+                    </Button>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>

@@ -262,7 +262,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const evolutionResult = await whatsappService.createInstance(
         instanceData.instanceName,
         instanceData.token,
-        instanceData.phoneNumber
+        instanceData.phoneNumber,
+        instanceData.useQrCode || true
       );
       
       if (!evolutionResult.success) {
@@ -271,13 +272,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Save instance to database with 'connecting' status
+      // Save instance to database with QR code data
       const instance = await storage.createUserWhatsappInstance({
         ...instanceData,
-        status: 'connecting'
+        status: 'connecting',
+        instanceId: evolutionResult.data?.instance?.instanceId,
+        integration: evolutionResult.data?.instance?.integration || 'WHATSAPP-BAILEYS',
+        qrCode: evolutionResult.data?.qrcode?.code,
+        qrCodeBase64: evolutionResult.data?.qrcode?.base64,
+        useQrCode: instanceData.useQrCode || true
       }, userId);
       
-      res.status(201).json(instance);
+      res.status(201).json({
+        ...instance,
+        qrCodeData: evolutionResult.data?.qrcode
+      });
     } catch (error) {
       console.error('Error creating WhatsApp instance:', error);
       res.status(500).json({ message: 'Erro ao criar instância WhatsApp' });

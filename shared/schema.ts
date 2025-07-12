@@ -260,6 +260,10 @@ export const userWhatsappInstances = pgTable("user_whatsapp_instances", {
   phoneNumber: varchar("phone_number", { length: 20 }),
   status: varchar("status", { length: 50 }).default("disconnected").notNull(), // disconnected, connecting, connected, error
   qrCode: text("qr_code"),
+  qrCodeBase64: text("qr_code_base64"),
+  instanceId: varchar("instance_id", { length: 255 }),
+  integration: varchar("integration", { length: 50 }).default("WHATSAPP-BAILEYS").notNull(),
+  useQrCode: boolean("use_qr_code").default(true).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
