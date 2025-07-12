@@ -25,6 +25,18 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
+  // Admin operations
+  getAllUsers(): Promise<User[]>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
+  deleteUser(id: number): Promise<void>;
+  getUserStats(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    totalTransactions: number;
+    totalVolume: number;
+    subscriptionStats: { [key: string]: number };
+  }>;
+  
   // Client operations
   getClients(userId: number): Promise<Client[]>;
   getClient(id: number, userId: number): Promise<Client | undefined>;
@@ -84,6 +96,58 @@ export class DatabaseStorage implements IStorage {
       .values(userData)
       .returning();
     return user;
+  }
+
+  // Admin operations
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ ...userData, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  async getUserStats(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    totalTransactions: number;
+    totalVolume: number;
+    subscriptionStats: { [key: string]: number };
+  }> {
+    const [userCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users);
+    
+    const [receivableStats] = await db
+      .select({ 
+        count: sql<number>`count(*)`,
+        sum: sql<number>`coalesce(sum(${receivables.amount}), 0)`
+      })
+      .from(receivables);
+    
+    const [payableStats] = await db
+      .select({ 
+        count: sql<number>`count(*)`,
+        sum: sql<number>`coalesce(sum(${payables.amount}), 0)`
+      })
+      .from(payables);
+
+    return {
+      totalUsers: userCount.count,
+      activeUsers: userCount.count, // Assumindo que todos estão ativos
+      totalTransactions: (receivableStats.count || 0) + (payableStats.count || 0),
+      totalVolume: parseFloat(receivableStats.sum?.toString() || '0') + parseFloat(payableStats.sum?.toString() || '0'),
+      subscriptionStats: { free: userCount.count }, // Assumindo que todos são free
+    };
   }
 
   // Client operations
