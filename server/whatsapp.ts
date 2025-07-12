@@ -185,10 +185,20 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
 
   async createInstance(instanceName: string, token?: string, number?: string): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
+      // Format phone number to match Evolution API pattern: digits followed by optional .@\w-
+      let formattedNumber = number || instanceName;
+      
+      // If it's a phone number, ensure it starts with digits
+      if (formattedNumber && !/^\d+[\.\@\w-]*$/.test(formattedNumber)) {
+        // Extract only digits and add a default suffix if needed
+        const digitsOnly = formattedNumber.replace(/\D/g, '');
+        formattedNumber = digitsOnly || instanceName;
+      }
+      
       const payload = {
         instanceName,
         token: token || undefined,
-        number: number || instanceName,
+        number: formattedNumber,
         qrcode: false,
         integration: "EVOLUTION"
       };

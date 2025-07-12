@@ -201,8 +201,15 @@ export default function WhatsAppInstanceManager() {
                       id="phoneNumber"
                       placeholder="5511999999999"
                       value={newInstance.phoneNumber}
-                      onChange={(e) => setNewInstance({...newInstance, phoneNumber: e.target.value})}
+                      onChange={(e) => {
+                        // Allow only numbers and some special characters following Evolution API pattern
+                        const value = e.target.value.replace(/[^\d\.@\w-]/g, '');
+                        setNewInstance({...newInstance, phoneNumber: value});
+                      }}
                     />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Formato aceito: números seguidos por .@\w- (ex: 5511999999999)
+                    </p>
                   </div>
                   <Button 
                     onClick={handleCreateInstance}
