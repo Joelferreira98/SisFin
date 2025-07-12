@@ -161,3 +161,15 @@ export function isAuthenticated(req: any, res: any, next: any) {
   }
   next();
 }
+
+export function isAdmin(req: any, res: any, next: any) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  // Check if user is admin using isAdmin field or first user
+  if (req.user && (req.user.isAdmin || req.user.id === 1)) {
+    return next();
+  } else {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+}

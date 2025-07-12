@@ -4,6 +4,8 @@ import {
   receivables,
   payables,
   whatsappMessages,
+  plans,
+  userSubscriptions,
   type User,
   type InsertUser,
   type Client,
@@ -14,6 +16,10 @@ import {
   type InsertPayable,
   type WhatsappMessage,
   type InsertWhatsappMessage,
+  type Plan,
+  type InsertPlan,
+  type UserSubscription,
+  type InsertUserSubscription,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, or } from "drizzle-orm";
@@ -36,6 +42,20 @@ export interface IStorage {
     totalVolume: number;
     subscriptionStats: { [key: string]: number };
   }>;
+  
+  // Plan operations
+  getPlans(): Promise<Plan[]>;
+  getPlan(id: number): Promise<Plan | undefined>;
+  createPlan(plan: InsertPlan): Promise<Plan>;
+  updatePlan(id: number, plan: Partial<InsertPlan>): Promise<Plan>;
+  deletePlan(id: number): Promise<void>;
+  
+  // Subscription operations
+  getUserSubscriptions(userId: number): Promise<(UserSubscription & { plan: Plan })[]>;
+  createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription>;
+  
+  // Admin check
+  isUserAdmin(userId: number): Promise<boolean>;
   
   // Client operations
   getClients(userId: number): Promise<Client[]>;
@@ -148,6 +168,70 @@ export class DatabaseStorage implements IStorage {
       totalVolume: parseFloat(receivableStats.sum?.toString() || '0') + parseFloat(payableStats.sum?.toString() || '0'),
       subscriptionStats: { free: userCount.count }, // Assumindo que todos são free
     };
+  }
+
+  // Plan operations
+  async getPlans(): Promise<Plan[]> {
+    return await db.select().from(plans).where(eq(plans.isActive, true)).orderBy(plans.price);
+  }
+
+  async getPlan(id: number): Promise<Plan | undefined> {
+    const [plan] = await db.select().from(plans).where(eq(plans.id, id));
+    return plan;
+  }
+
+  async createPlan(planData: InsertPlan): Promise<Plan> {
+    const [plan] = await db
+      .insert(plans)
+      .values(planData)
+      .returning();
+    return plan;
+  }
+
+  async updatePlan(id: number, planData: Partial<InsertPlan>): Promise<Plan> {
+    const [plan] = await db
+      .update(plans)
+      .set({ ...planData, updatedAt: new Date() })
+      .where(eq(plans.id, id))
+      .returning();
+    return plan;
+  }
+
+  async deletePlan(id: number): Promise<void> {
+    await db.update(plans).set({ isActive: false }).where(eq(plans.id, id));
+  }
+
+  // Subscription operations
+  async getUserSubscriptions(userId: number): Promise<(UserSubscription & { plan: Plan })[]> {
+    return await db
+      .select({
+        id: userSubscriptions.id,
+        userId: userSubscriptions.userId,
+        planId: userSubscriptions.planId,
+        startDate: userSubscriptions.startDate,
+        endDate: userSubscriptions.endDate,
+        isActive: userSubscriptions.isActive,
+        createdAt: userSubscriptions.createdAt,
+        updatedAt: userSubscriptions.updatedAt,
+        plan: plans,
+      })
+      .from(userSubscriptions)
+      .leftJoin(plans, eq(userSubscriptions.planId, plans.id))
+      .where(eq(userSubscriptions.userId, userId));
+  }
+
+  async createUserSubscription(subscriptionData: InsertUserSubscription): Promise<UserSubscription> {
+    const [subscription] = await db
+      .insert(userSubscriptions)
+      .values(subscriptionData)
+      .returning();
+    return subscription;
+  }
+
+  // Admin check
+  async isUserAdmin(userId: number): Promise<boolean> {
+    const [user] = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, userId));
+    return user?.isAdmin || false;
   }
 
   // Client operations

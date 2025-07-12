@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./auth";
-import { insertClientSchema, insertReceivableSchema, insertPayableSchema } from "@shared/schema";
+import { setupAuth, isAuthenticated, isAdmin } from "./auth";
+import { insertClientSchema, insertReceivableSchema, insertPayableSchema, insertPlanSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -237,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes
-  app.get("/api/admin/users", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/users", isAdmin, async (req: any, res) => {
     try {
       const users = await storage.getAllUsers();
       res.json(users);
@@ -247,7 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/stats", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/stats", isAdmin, async (req: any, res) => {
     try {
       const stats = await storage.getUserStats();
       res.json(stats);
@@ -257,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/users/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/admin/users/:id", isAdmin, async (req: any, res) => {
     try {
       const userId = parseInt(req.params.id);
       const updates = req.body;
@@ -269,7 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/users/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/admin/users/:id", isAdmin, async (req: any, res) => {
     try {
       const userId = parseInt(req.params.id);
       await storage.deleteUser(userId);
@@ -277,6 +277,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting user:", error);
       res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Plan routes
+  app.get("/api/plans", isAuthenticated, async (req: any, res) => {
+    try {
+      const plans = await storage.getPlans();
+      res.json(plans);
+    } catch (error) {
+      console.error("Error fetching plans:", error);
+      res.status(500).json({ message: "Failed to fetch plans" });
+    }
+  });
+
+  app.get("/api/admin/plans", isAdmin, async (req: any, res) => {
+    try {
+      const plans = await storage.getPlans();
+      res.json(plans);
+    } catch (error) {
+      console.error("Error fetching plans:", error);
+      res.status(500).json({ message: "Failed to fetch plans" });
+    }
+  });
+
+  app.post("/api/admin/plans", isAdmin, async (req: any, res) => {
+    try {
+      const planData = insertPlanSchema.parse(req.body);
+      const plan = await storage.createPlan(planData);
+      res.status(201).json(plan);
+    } catch (error) {
+      console.error("Error creating plan:", error);
+      res.status(500).json({ message: "Failed to create plan" });
+    }
+  });
+
+  app.patch("/api/admin/plans/:id", isAdmin, async (req: any, res) => {
+    try {
+      const planId = parseInt(req.params.id);
+      const updates = req.body;
+      const plan = await storage.updatePlan(planId, updates);
+      res.json(plan);
+    } catch (error) {
+      console.error("Error updating plan:", error);
+      res.status(500).json({ message: "Failed to update plan" });
+    }
+  });
+
+  app.delete("/api/admin/plans/:id", isAdmin, async (req: any, res) => {
+    try {
+      const planId = parseInt(req.params.id);
+      await storage.deletePlan(planId);
+      res.json({ message: "Plan deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting plan:", error);
+      res.status(500).json({ message: "Failed to delete plan" });
     }
   });
 

@@ -5,6 +5,7 @@ import Header from "@/components/layout/header";
 import Navigation from "@/components/layout/navigation";
 import AdminStats from "@/components/admin/admin-stats";
 import UserManagement from "@/components/admin/user-management";
+import PlanManagement from "@/components/admin/plan-management";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -71,7 +72,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Visão Geral
@@ -79,6 +80,10 @@ export default function Admin() {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Usuários
+            </TabsTrigger>
+            <TabsTrigger value="plans" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Planos
             </TabsTrigger>
             <TabsTrigger value="whatsapp" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
@@ -96,6 +101,10 @@ export default function Admin() {
 
           <TabsContent value="users" className="space-y-6">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="plans" className="space-y-6">
+            <PlanManagement />
           </TabsContent>
 
           <TabsContent value="whatsapp" className="space-y-6">
