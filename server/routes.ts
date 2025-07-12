@@ -392,15 +392,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: 'Serviço WhatsApp não configurado' });
       }
       
-      const statusResult = await whatsappService.getInstanceStatus(instance.instanceName);
+      // Try to get instance info first
+      const infoResult = await whatsappService.getInstanceInfo(instance.instanceName);
+      let newStatus = 'disconnected';
+      let phoneNumber = instance.phoneNumber;
       
-      if (!statusResult.success) {
-        return res.status(500).json({ 
-          message: `Erro ao obter status da instância: ${statusResult.error}` 
-        });
+      if (infoResult.success && infoResult.data) {
+        // Check if it's an array of instances
+        const instanceData = Array.isArray(infoResult.data) ? infoResult.data[0] : infoResult.data;
+        
+        if (instanceData) {
+          // Determine status based on Evolution API response
+          if (instanceData.connectionStatus === 'open') {
+            newStatus = 'connected';
+          } else if (instanceData.connectionStatus === 'connecting') {
+            newStatus = 'connecting';
+          } else {
+            newStatus = 'disconnected';
+          }
+          
+          // Update phone number if available
+          if (instanceData.instance?.wuid) {
+            phoneNumber = instanceData.instance.wuid.replace('@c.us', '');
+          }
+        }
       }
       
-      res.json(statusResult.data);
+      // Update instance status in database
+      const updatedInstance = await storage.updateUserWhatsappInstance(instanceId, {
+        status: newStatus,
+        phoneNumber: phoneNumber
+      }, userId);
+      
+      res.json({
+        ...infoResult.data,
+        localStatus: newStatus,
+        updatedInstance
+      });
     } catch (error) {
       console.error('Error getting instance status:', error);
       res.status(500).json({ message: 'Erro ao obter status da instância' });

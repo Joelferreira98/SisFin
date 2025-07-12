@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -30,7 +30,28 @@ export default function WhatsAppInstanceManager() {
   const { data: instances, isLoading } = useQuery({
     queryKey: ['/api/whatsapp/instances'],
     queryFn: () => apiRequest('GET', '/api/whatsapp/instances').then(res => res.json()),
+    refetchInterval: 30000, // Atualiza a cada 30 segundos
   });
+
+  // Auto-refresh status das instâncias conectando
+  useEffect(() => {
+    if (instances && instances.length > 0) {
+      const connectingInstances = instances.filter((instance: UserWhatsappInstance) => 
+        instance.status === 'connecting'
+      );
+      
+      if (connectingInstances.length > 0) {
+        // Verifica status das instâncias conectando a cada 10 segundos
+        const interval = setInterval(() => {
+          connectingInstances.forEach((instance: UserWhatsappInstance) => {
+            checkStatusMutation.mutate(instance.id);
+          });
+        }, 10000);
+        
+        return () => clearInterval(interval);
+      }
+    }
+  }, [instances]);
 
   // Mutation para criar instância
   const createInstanceMutation = useMutation({
@@ -118,10 +139,29 @@ export default function WhatsAppInstanceManager() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/whatsapp/instances'] });
-      toast({
-        title: "Status verificado",
-        description: `Status da instância: ${data.status || 'Desconhecido'}`,
-      });
+      
+      // Só mostra toast se chamado manualmente (não no polling automático)
+      if (data.localStatus && !data.skipToast) {
+        let statusMessage = '';
+        switch (data.localStatus) {
+          case 'connected':
+            statusMessage = 'WhatsApp conectado com sucesso!';
+            break;
+          case 'connecting':
+            statusMessage = 'Aguardando conexão...';
+            break;
+          case 'disconnected':
+            statusMessage = 'WhatsApp desconectado';
+            break;
+          default:
+            statusMessage = `Status: ${data.localStatus}`;
+        }
+        
+        toast({
+          title: "Status atualizado",
+          description: statusMessage,
+        });
+      }
     },
     onError: (error: Error) => {
       toast({

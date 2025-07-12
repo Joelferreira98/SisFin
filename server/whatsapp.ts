@@ -232,9 +232,34 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
       }
 
       const data = await response.json();
+      console.log('Instance status response:', JSON.stringify(data, null, 2));
       return { success: true, data };
     } catch (error) {
       console.error('Error getting instance status:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getInstanceInfo(instanceName: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await fetch(`${this.config.apiUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.config.apiKey
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('Instance info response:', JSON.stringify(data, null, 2));
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error getting instance info:', error);
       return { success: false, error: error.message };
     }
   }
