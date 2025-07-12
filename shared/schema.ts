@@ -151,6 +151,8 @@ export const insertReceivableSchema = createInsertSchema(receivables).omit({
   userId: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  dueDate: z.string().transform((val) => new Date(val)),
 });
 
 export const insertPayableSchema = createInsertSchema(payables).omit({
@@ -158,6 +160,8 @@ export const insertPayableSchema = createInsertSchema(payables).omit({
   userId: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  dueDate: z.string().transform((val) => new Date(val)),
 });
 
 export const insertWhatsappMessageSchema = createInsertSchema(whatsappMessages).omit({
