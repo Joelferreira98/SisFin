@@ -249,3 +249,27 @@ The multi-user WhatsApp system is now fully operational with proper separation b
 - **Format Compliance**: Phone numbers automatically formatted to meet Evolution API requirements
 
 The Evolution API v2 integration is now fully functional with proper validation, error handling, and real-time synchronization.
+
+## Latest Updates (July 12, 2025 - WhatsApp Automation)
+
+### Automatic WhatsApp Messaging for Installment Sales
+- **Feature**: Automatic WhatsApp link sending when installment sales are created
+- **Integration**: Uses user's active WhatsApp instance to send confirmation requests
+- **Message Content**: Includes sale details, total amount, installment count, and confirmation link
+- **User Experience**: Seamless integration - clients automatically receive confirmation links
+- **Error Handling**: Sales creation succeeds even if WhatsApp sending fails
+
+### Technical Implementation
+- **Instance Management**: Messages sent using user's active WhatsApp instance instead of global service
+- **Method Enhancement**: Updated sendTextMessage to accept instanceName parameter
+- **User Instance Detection**: Added getUserActiveInstance method to find connected user instances
+- **Logging**: Enhanced logging for message sending success/failure tracking
+- **Testing Endpoint**: Added /api/whatsapp/test-message for manual message testing
+
+### System Improvements
+- **Deletion Process**: Improved instance deletion to remove from both application and Evolution API
+- **Status Updates**: Better phone number extraction from Evolution API responses
+- **Error Resilience**: Sales creation continues even if WhatsApp service is unavailable
+- **Multi-Instance Support**: All messaging methods now support user-specific instances
+
+The automatic WhatsApp messaging system is now fully operational, providing seamless client communication when installment sales are created.

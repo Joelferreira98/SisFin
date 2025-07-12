@@ -14,12 +14,13 @@ export class WhatsAppService {
     this.config = config;
   }
 
-  async sendTextMessage(phoneNumber: string, message: string): Promise<boolean> {
+  async sendTextMessage(phoneNumber: string, message: string, instanceName?: string): Promise<boolean> {
     try {
       // Formatar o número do WhatsApp (remover caracteres especiais)
       const formattedNumber = phoneNumber.replace(/\D/g, '');
+      const instance = instanceName || this.config.instanceName;
       
-      const response = await fetch(`${this.config.apiUrl}/message/sendText/${this.config.instanceName}`, {
+      const response = await fetch(`${this.config.apiUrl}/message/sendText/${instance}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +68,9 @@ Para mais informações, entre em contato conosco.
 
 _Mensagem automática - Sistema de Gestão Financeira_`;
 
-    const success = await this.sendTextMessage(phoneNumber, message);
+    // Get user's active WhatsApp instance
+    const userInstance = await this.getUserActiveInstance(userId);
+    const success = await this.sendTextMessage(phoneNumber, message, userInstance);
 
     // Salvar no banco de dados
     try {
@@ -107,7 +110,9 @@ Por favor, entre em contato para regularizar a situação.
 
 _Mensagem automática - Sistema de Gestão Financeira_`;
 
-    const success = await this.sendTextMessage(phoneNumber, message);
+    // Get user's active WhatsApp instance
+    const userInstance = await this.getUserActiveInstance(userId);
+    const success = await this.sendTextMessage(phoneNumber, message, userInstance);
 
     // Salvar no banco de dados
     try {
@@ -148,7 +153,9 @@ No link, você poderá enviar a foto do documento como assinatura digital.
 
 _Mensagem automática - Sistema de Gestão Financeira_`;
 
-    const success = await this.sendTextMessage(phoneNumber, message);
+    // Get user's active WhatsApp instance
+    const userInstance = await this.getUserActiveInstance(userId);
+    const success = await this.sendTextMessage(phoneNumber, message, userInstance);
 
     // Salvar no banco de dados
     try {
@@ -165,6 +172,19 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
     }
 
     return success;
+  }
+
+  async getUserActiveInstance(userId: number): Promise<string | undefined> {
+    try {
+      const instances = await storage.getUserWhatsappInstances(userId);
+      const activeInstance = instances.find(instance => 
+        instance.status === 'connected' && instance.isActive
+      );
+      return activeInstance?.instanceName;
+    } catch (error) {
+      console.error('Error getting user active instance:', error);
+      return undefined;
+    }
   }
 
   async testConnection(): Promise<boolean> {

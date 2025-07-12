@@ -378,6 +378,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route to test WhatsApp message sending
+  app.post('/api/whatsapp/test-message', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { phoneNumber, message, instanceName } = req.body;
+      
+      if (!phoneNumber || !message) {
+        return res.status(400).json({ message: 'Phone number and message are required' });
+      }
+      
+      const whatsappService = getWhatsAppService();
+      if (!whatsappService) {
+        return res.status(500).json({ message: 'Serviço WhatsApp não configurado' });
+      }
+      
+      const success = await whatsappService.sendTextMessage(phoneNumber, message, instanceName);
+      
+      res.json({ 
+        success, 
+        message: success ? 'Mensagem enviada com sucesso' : 'Falha ao enviar mensagem' 
+      });
+    } catch (error) {
+      console.error('Error testing WhatsApp message:', error);
+      res.status(500).json({ message: 'Erro ao testar mensagem WhatsApp' });
+    }
+  });
+
   // Route to get instance status from Evolution API
   app.get('/api/whatsapp/instances/:id/status', isAuthenticated, async (req: any, res) => {
     try {
@@ -475,6 +502,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const saleData = insertInstallmentSaleSchema.parse(req.body);
       const sale = await storage.createInstallmentSale(saleData, userId);
+      
+      // Get client data to send WhatsApp message
+      const client = await storage.getClient(sale.clientId, userId);
+      if (client && client.whatsapp) {
+        const whatsappService = getWhatsAppService();
+        if (whatsappService) {
+          try {
+            const sent = await whatsappService.sendInstallmentConfirmationRequest(
+              client.id,
+              client.name,
+              client.whatsapp,
+              sale.description,
+              sale.totalAmount,
+              sale.installmentCount,
+              sale.confirmationToken,
+              userId
+            );
+            if (sent) {
+              console.log(`WhatsApp confirmation sent to ${client.name} (${client.whatsapp})`);
+            } else {
+              console.error(`Failed to send WhatsApp confirmation to ${client.name} (${client.whatsapp})`);
+            }
+          } catch (whatsappError) {
+            console.error('Error sending WhatsApp confirmation:', whatsappError);
+            // Don't fail the sale creation if WhatsApp fails
+          }
+        }
+      }
+      
       res.status(201).json(sale);
     } catch (error) {
       console.error("Error creating installment sale:", error);
