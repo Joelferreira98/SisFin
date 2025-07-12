@@ -31,6 +31,12 @@ interface PayableModalProps {
   payable?: Payable | null;
 }
 
+const formatDateForInput = (date: Date | string) => {
+  if (!date) return '';
+  const dateObj = date instanceof Date ? date : new Date(date);
+  return dateObj.toISOString().split('T')[0];
+};
+
 export default function PayableModal({ isOpen, onClose, payable }: PayableModalProps) {
   const { toast } = useToast();
 
@@ -76,13 +82,13 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/auth";
+          window.location.href = "/api/login";
         }, 500);
         return;
       }
       toast({
-        title: "Erro",
-        description: "Erro ao criar conta",
+        title: "Erro ao criar conta",
+        description: error.message || "Erro desconhecido",
         variant: "destructive",
       });
     },
@@ -90,7 +96,7 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertPayable) => {
-      const response = await apiRequest("PUT", `/api/payables/${payable!.id}`, data);
+      const response = await apiRequest("PATCH", `/api/payables/${payable?.id}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -110,13 +116,13 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/auth";
+          window.location.href = "/api/login";
         }, 500);
         return;
       }
       toast({
-        title: "Erro",
-        description: "Erro ao atualizar conta",
+        title: "Erro ao atualizar conta",
+        description: error.message || "Erro desconhecido",
         variant: "destructive",
       });
     },
@@ -161,12 +167,6 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
   const handleClose = () => {
     form.reset();
     onClose();
-  };
-
-  const formatDateForInput = (date: Date | string) => {
-    if (!date) return '';
-    const dateObj = date instanceof Date ? date : new Date(date);
-    return dateObj.toISOString().split('T')[0];
   };
 
   return (
@@ -224,7 +224,17 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
                 <FormItem>
                   <FormLabel>Valor *</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      min="0" 
+                      placeholder="0.00" 
+                      {...field}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.onChange(value);
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
