@@ -24,6 +24,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CreditCard, Calendar, DollarSign } from "lucide-react";
 
 interface ReceivableModalProps {
   isOpen: boolean;
@@ -33,6 +35,7 @@ interface ReceivableModalProps {
 
 export default function ReceivableModal({ isOpen, onClose, receivable }: ReceivableModalProps) {
   const { toast } = useToast();
+  const [isGeneratingInstallments, setIsGeneratingInstallments] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["/api/clients"],
@@ -40,7 +43,21 @@ export default function ReceivableModal({ isOpen, onClose, receivable }: Receiva
   });
 
   const form = useForm<InsertReceivable>({
-    resolver: zodResolver(insertReceivableSchema),
+    resolver: zodResolver(insertReceivableSchema.refine(
+      (data) => {
+        // Validação para parcelas
+        if (data.type === "installment") {
+          return data.installmentNumber && data.totalInstallments && 
+                 data.installmentNumber > 0 && data.totalInstallments > 0 &&
+                 data.installmentNumber <= data.totalInstallments;
+        }
+        return true;
+      },
+      {
+        message: "Para parcelamento, informe número da parcela e total de parcelas válidos",
+        path: ["installmentNumber"]
+      }
+    )),
     defaultValues: {
       clientId: 0,
       description: "",
@@ -158,6 +175,111 @@ export default function ReceivableModal({ isOpen, onClose, receivable }: Receiva
     }
   };
 
+  const generateInstallments = async () => {
+    const formData = form.getValues();
+    
+    // Validações
+    if (!formData.clientId || formData.clientId === 0) {
+      toast({
+        title: "Erro",
+        description: "Selecione um cliente",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      toast({
+        title: "Erro",
+        description: "Informe um valor válido",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!formData.totalInstallments || formData.totalInstallments <= 0) {
+      toast({
+        title: "Erro",
+        description: "Informe o número total de parcelas",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!formData.description) {
+      toast({
+        title: "Erro",
+        description: "Informe a descrição",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingInstallments(true);
+    
+    try {
+      const totalAmount = parseFloat(formData.amount);
+      const installmentAmount = totalAmount / formData.totalInstallments;
+      const baseDate = new Date(formData.dueDate);
+      
+      // Gerar todas as parcelas
+      const installments = [];
+      for (let i = 1; i <= formData.totalInstallments; i++) {
+        const dueDate = new Date(baseDate);
+        dueDate.setMonth(dueDate.getMonth() + (i - 1));
+        
+        const installmentData = {
+          clientId: formData.clientId,
+          description: `${formData.description} - Parcela ${i}/${formData.totalInstallments}`,
+          amount: installmentAmount.toFixed(2),
+          dueDate: dueDate,
+          status: "pending" as const,
+          type: "installment" as const,
+          installmentNumber: i,
+          totalInstallments: formData.totalInstallments,
+        };
+        
+        installments.push(installmentData);
+      }
+      
+      // Criar todas as parcelas
+      const promises = installments.map(installment => 
+        apiRequest("POST", "/api/receivables", installment)
+      );
+      
+      await Promise.all(promises);
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/receivables"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      
+      toast({
+        title: "Parcelas criadas",
+        description: `${formData.totalInstallments} parcelas foram criadas com sucesso`,
+      });
+      
+      onClose();
+    } catch (error) {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Erro",
+        description: "Erro ao gerar parcelas",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingInstallments(false);
+    }
+  };
+
   const handleClose = () => {
     form.reset();
     onClose();
@@ -169,7 +291,7 @@ export default function ReceivableModal({ isOpen, onClose, receivable }: Receiva
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{receivable ? "Editar Conta a Receber" : "Nova Conta a Receber"}</DialogTitle>
         </DialogHeader>
@@ -189,11 +311,17 @@ export default function ReceivableModal({ isOpen, onClose, receivable }: Receiva
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {clients.map((client: any) => (
-                        <SelectItem key={client.id} value={client.id.toString()}>
-                          {client.name}
+                      {clients.length === 0 ? (
+                        <SelectItem value="0" disabled>
+                          Nenhum cliente encontrado
                         </SelectItem>
-                      ))}
+                      ) : (
+                        clients.map((client: any) => (
+                          <SelectItem key={client.id} value={client.id.toString()}>
+                            {client.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -222,7 +350,17 @@ export default function ReceivableModal({ isOpen, onClose, receivable }: Receiva
                 <FormItem>
                   <FormLabel>Valor *</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      min="0" 
+                      placeholder="0.00" 
+                      {...field}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.onChange(value);
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -271,34 +409,72 @@ export default function ReceivableModal({ isOpen, onClose, receivable }: Receiva
             />
 
             {form.watch("type") === "installment" && (
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="installmentNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Parcela Número</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="1" {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="installmentNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Parcela Número</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="1" {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="totalInstallments"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total de Parcelas</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="12" {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="totalInstallments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Total de Parcelas</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="12" {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      Gerador de Parcelas
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Gera automaticamente todas as parcelas com vencimentos mensais
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <DollarSign className="w-4 h-4" />
+                        <span>Valor por parcela: R$ {form.watch("amount") && form.watch("totalInstallments") ? 
+                          (parseFloat(form.watch("amount")) / form.watch("totalInstallments")!).toFixed(2) : "0.00"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar className="w-4 h-4" />
+                        <span>Vencimento: {form.watch("totalInstallments") ? 
+                          `${form.watch("totalInstallments")} parcelas mensais` : "Não definido"}</span>
+                      </div>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-3"
+                      onClick={generateInstallments}
+                      disabled={isGeneratingInstallments || !form.watch("amount") || !form.watch("totalInstallments")}
+                    >
+                      {isGeneratingInstallments ? "Gerando..." : "Gerar Todas as Parcelas"}
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
             )}
 
