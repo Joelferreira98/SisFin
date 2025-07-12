@@ -45,7 +45,7 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
       receiverId: payable?.receiverId || 0,
       description: payable?.description || "",
       amount: payable?.amount || "",
-      dueDate: payable?.dueDate ? new Date(payable.dueDate) : new Date(),
+      dueDate: payable?.dueDate ? formatDateForInput(payable.dueDate) : formatDateForInput(new Date()),
       status: payable?.status || "pending",
       type: payable?.type || "single",
       installmentNumber: payable?.installmentNumber || undefined,
@@ -128,7 +128,7 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
         receiverId: payable.receiverId,
         description: payable.description || "",
         amount: payable.amount || "",
-        dueDate: payable.dueDate ? new Date(payable.dueDate) : new Date(),
+        dueDate: payable.dueDate ? formatDateForInput(payable.dueDate) : formatDateForInput(new Date()),
         status: payable.status || "pending",
         type: payable.type || "single",
         installmentNumber: payable.installmentNumber || undefined,
@@ -140,7 +140,7 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
         receiverId: 0,
         description: "",
         amount: "",
-        dueDate: new Date(),
+        dueDate: formatDateForInput(new Date()),
         status: "pending",
         type: "single",
         installmentNumber: undefined,
@@ -151,16 +151,10 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
   }, [payable, form]);
 
   const onSubmit = (data: InsertPayable) => {
-    // Convert date to ISO string for API
-    const submitData = {
-      ...data,
-      dueDate: data.dueDate instanceof Date ? data.dueDate.toISOString() : data.dueDate,
-    };
-    
     if (payable) {
-      updateMutation.mutate(submitData);
+      updateMutation.mutate(data);
     } else {
-      createMutation.mutate(submitData);
+      createMutation.mutate(data);
     }
   };
 
@@ -247,7 +241,7 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
                     <Input 
                       type="date" 
                       value={formatDateForInput(field.value)} 
-                      onChange={(e) => field.onChange(new Date(e.target.value))}
+                      onChange={(e) => field.onChange(e.target.value)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -317,9 +311,9 @@ export default function PayableModal({ isOpen, onClose, payable }: PayableModalP
               <Button 
                 type="submit" 
                 disabled={createMutation.isPending || updateMutation.isPending}
-                className="bg-error hover:bg-error/90"
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
-                {payable ? "Atualizar" : "Criar"} Conta
+                {createMutation.isPending || updateMutation.isPending ? "Salvando..." : (payable ? "Atualizar" : "Criar")} Conta
               </Button>
             </div>
           </form>
