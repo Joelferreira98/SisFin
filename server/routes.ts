@@ -333,6 +333,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         notes
       }, userId);
       
+      // If approved, create receivables for each installment
+      if (approved) {
+        await storage.createReceivablesFromInstallmentSale(saleId, userId);
+      }
+      
       res.json(sale);
     } catch (error) {
       console.error("Error updating sale status:", error);

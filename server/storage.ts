@@ -104,6 +104,7 @@ export interface IStorage {
   updateInstallmentSaleByToken(token: string, updates: Partial<InstallmentSale>): Promise<InstallmentSale>;
   deleteInstallmentSale(id: number, userId: number): Promise<void>;
   generateConfirmationToken(): string;
+  createReceivablesFromInstallmentSale(saleId: number, userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -703,6 +704,43 @@ export class DatabaseStorage implements IStorage {
   async deleteInstallmentSale(id: number, userId: number): Promise<void> {
     await db.delete(installmentSales)
       .where(and(eq(installmentSales.id, id), eq(installmentSales.userId, userId)));
+  }
+
+  async createReceivablesFromInstallmentSale(saleId: number, userId: number): Promise<void> {
+    // First, get the installment sale details
+    const sale = await this.getInstallmentSale(saleId, userId);
+    if (!sale) {
+      throw new Error("Installment sale not found");
+    }
+
+    // Calculate installment dates
+    const firstDueDate = new Date(sale.firstDueDate);
+    const installmentAmount = parseFloat(sale.installmentValue);
+    
+    // Create receivables for each installment
+    const receivableData = [];
+    for (let i = 0; i < sale.installmentCount; i++) {
+      const dueDate = new Date(firstDueDate);
+      dueDate.setMonth(dueDate.getMonth() + i);
+      
+      const receivable = {
+        userId,
+        clientId: sale.clientId,
+        description: `${sale.description} - Parcela ${i + 1}/${sale.installmentCount}`,
+        amount: installmentAmount,
+        dueDate,
+        status: 'pending' as const,
+        type: 'installment' as const,
+        installmentNumber: i + 1,
+        totalInstallments: sale.installmentCount,
+        parentId: saleId, // Reference to the original sale
+      };
+      
+      receivableData.push(receivable);
+    }
+
+    // Insert all receivables
+    await db.insert(receivables).values(receivableData);
   }
 }
 
