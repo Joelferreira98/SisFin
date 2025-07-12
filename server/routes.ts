@@ -253,7 +253,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Nome da instância já existe' });
       }
       
-      const instance = await storage.createUserWhatsappInstance(instanceData, userId);
+      // Create instance in Evolution API
+      const whatsappService = getWhatsAppService();
+      if (!whatsappService) {
+        return res.status(500).json({ message: 'Serviço WhatsApp não configurado' });
+      }
+      
+      const evolutionResult = await whatsappService.createInstance(
+        instanceData.instanceName,
+        instanceData.token,
+        instanceData.phoneNumber
+      );
+      
+      if (!evolutionResult.success) {
+        return res.status(500).json({ 
+          message: `Erro ao criar instância na Evolution API: ${evolutionResult.error}` 
+        });
+      }
+      
+      // Save instance to database with 'connecting' status
+      const instance = await storage.createUserWhatsappInstance({
+        ...instanceData,
+        status: 'connecting'
+      }, userId);
+      
       res.status(201).json(instance);
     } catch (error) {
       console.error('Error creating WhatsApp instance:', error);
@@ -280,11 +303,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const instanceId = parseInt(req.params.id);
       
+      // Get instance from database first
+      const instances = await storage.getUserWhatsappInstances(userId);
+      const instance = instances.find(i => i.id === instanceId);
+      
+      if (!instance) {
+        return res.status(404).json({ message: 'Instância não encontrada' });
+      }
+      
+      // Delete from Evolution API
+      const whatsappService = getWhatsAppService();
+      if (whatsappService) {
+        await whatsappService.deleteInstance(instance.instanceName);
+      }
+      
+      // Delete from database
       await storage.deleteUserWhatsappInstance(instanceId, userId);
       res.json({ message: 'Instância WhatsApp deletada com sucesso' });
     } catch (error) {
       console.error('Error deleting WhatsApp instance:', error);
       res.status(500).json({ message: 'Erro ao deletar instância WhatsApp' });
+    }
+  });
+
+  // Route to get instance status from Evolution API
+  app.get('/api/whatsapp/instances/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const instanceId = parseInt(req.params.id);
+      
+      // Get instance from database
+      const instances = await storage.getUserWhatsappInstances(userId);
+      const instance = instances.find(i => i.id === instanceId);
+      
+      if (!instance) {
+        return res.status(404).json({ message: 'Instância não encontrada' });
+      }
+      
+      // Get status from Evolution API
+      const whatsappService = getWhatsAppService();
+      if (!whatsappService) {
+        return res.status(500).json({ message: 'Serviço WhatsApp não configurado' });
+      }
+      
+      const statusResult = await whatsappService.getInstanceStatus(instance.instanceName);
+      
+      if (!statusResult.success) {
+        return res.status(500).json({ 
+          message: `Erro ao obter status da instância: ${statusResult.error}` 
+        });
+      }
+      
+      res.json(statusResult.data);
+    } catch (error) {
+      console.error('Error getting instance status:', error);
+      res.status(500).json({ message: 'Erro ao obter status da instância' });
     }
   });
 

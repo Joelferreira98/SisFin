@@ -182,6 +182,83 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
       return false;
     }
   }
+
+  async createInstance(instanceName: string, token?: string, number?: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const payload = {
+        instanceName,
+        token: token || undefined,
+        number: number || instanceName,
+        qrcode: false,
+        integration: "EVOLUTION"
+      };
+
+      const response = await fetch(`${this.config.apiUrl}/instance/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.config.apiKey
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error creating Evolution instance:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getInstanceStatus(instanceName: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await fetch(`${this.config.apiUrl}/instance/connect/${instanceName}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.config.apiKey
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error getting instance status:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteInstance(instanceName: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${this.config.apiUrl}/instance/delete/${instanceName}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.config.apiKey
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting instance:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 // Singleton instance

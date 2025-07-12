@@ -98,6 +98,28 @@ export default function WhatsAppInstanceManager() {
     },
   });
 
+  // Mutation para verificar status da instância
+  const checkStatusMutation = useMutation({
+    mutationFn: async (instanceId: number) => {
+      const res = await apiRequest('GET', `/api/whatsapp/instances/${instanceId}/status`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/whatsapp/instances'] });
+      toast({
+        title: "Status verificado",
+        description: `Status da instância: ${data.status || 'Desconhecido'}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao verificar status: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateInstance = () => {
     if (!newInstance.instanceName || !newInstance.displayName) {
       toast({
@@ -235,12 +257,27 @@ export default function WhatsAppInstanceManager() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateInstanceMutation.mutate({ instanceId: instance.id, status: 'connecting' })}
+                            onClick={() => {
+                              toast({
+                                title: "Conectando...",
+                                description: "Iniciando conexão com WhatsApp. Aguarde...",
+                              });
+                              updateInstanceMutation.mutate({ instanceId: instance.id, status: 'connecting' });
+                            }}
                           >
                             <QrCode className="w-4 h-4 mr-1" />
                             Conectar
                           </Button>
                         )}
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => checkStatusMutation.mutate(instance.id)}
+                          disabled={checkStatusMutation.isPending}
+                        >
+                          <RefreshCw className={`w-4 h-4 ${checkStatusMutation.isPending ? 'animate-spin' : ''}`} />
+                        </Button>
                         
                         <Button
                           variant="outline"
