@@ -225,6 +225,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User WhatsApp instances routes
+  app.get('/api/whatsapp/instances', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const instances = await storage.getUserWhatsappInstances(userId);
+      res.json(instances);
+    } catch (error) {
+      console.error('Error getting WhatsApp instances:', error);
+      res.status(500).json({ message: 'Erro ao buscar instâncias WhatsApp' });
+    }
+  });
+
+  app.post('/api/whatsapp/instances', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const instanceData = req.body;
+      
+      // Validate required fields
+      if (!instanceData.instanceName || !instanceData.displayName) {
+        return res.status(400).json({ message: 'Nome da instância e nome de exibição são obrigatórios' });
+      }
+      
+      // Check if instance name already exists for this user
+      const existingInstance = await storage.getUserWhatsappInstanceByName(instanceData.instanceName, userId);
+      if (existingInstance) {
+        return res.status(400).json({ message: 'Nome da instância já existe' });
+      }
+      
+      const instance = await storage.createUserWhatsappInstance(instanceData, userId);
+      res.status(201).json(instance);
+    } catch (error) {
+      console.error('Error creating WhatsApp instance:', error);
+      res.status(500).json({ message: 'Erro ao criar instância WhatsApp' });
+    }
+  });
+
+  app.put('/api/whatsapp/instances/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const instanceId = parseInt(req.params.id);
+      const instanceData = req.body;
+      
+      const instance = await storage.updateUserWhatsappInstance(instanceId, instanceData, userId);
+      res.json(instance);
+    } catch (error) {
+      console.error('Error updating WhatsApp instance:', error);
+      res.status(500).json({ message: 'Erro ao atualizar instância WhatsApp' });
+    }
+  });
+
+  app.delete('/api/whatsapp/instances/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const instanceId = parseInt(req.params.id);
+      
+      await storage.deleteUserWhatsappInstance(instanceId, userId);
+      res.json({ message: 'Instância WhatsApp deletada com sucesso' });
+    } catch (error) {
+      console.error('Error deleting WhatsApp instance:', error);
+      res.status(500).json({ message: 'Erro ao deletar instância WhatsApp' });
+    }
+  });
+
   // Installment Sales routes
   app.get('/api/installment-sales', isAuthenticated, async (req: any, res) => {
     try {

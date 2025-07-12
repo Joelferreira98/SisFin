@@ -251,6 +251,24 @@ export const installmentSalesRelations = relations(installmentSales, ({ one, man
   installments: many(receivables),
 }));
 
+// User WhatsApp instances table
+export const userWhatsappInstances = pgTable("user_whatsapp_instances", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  instanceName: varchar("instance_name", { length: 255 }).notNull(),
+  displayName: varchar("display_name", { length: 255 }).notNull(),
+  phoneNumber: varchar("phone_number", { length: 20 }),
+  status: varchar("status", { length: 50 }).default("disconnected").notNull(), // disconnected, connecting, connected, error
+  qrCode: text("qr_code"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const userWhatsappInstancesRelations = relations(userWhatsappInstances, ({ one }) => ({
+  user: one(users, { fields: [userWhatsappInstances.userId], references: [users.id] }),
+}));
+
 export const insertPlanSchema = createInsertSchema(plans).omit({
   id: true,
   createdAt: true,
@@ -276,9 +294,18 @@ export const insertInstallmentSaleSchema = createInsertSchema(installmentSales).
   firstDueDate: z.string().transform((val) => new Date(val)),
 });
 
+export const insertUserWhatsappInstanceSchema = createInsertSchema(userWhatsappInstances).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type Plan = typeof plans.$inferSelect;
 export type InsertPlan = z.infer<typeof insertPlanSchema>;
 export type UserSubscription = typeof userSubscriptions.$inferSelect;
 export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;
 export type InstallmentSale = typeof installmentSales.$inferSelect;
 export type InsertInstallmentSale = z.infer<typeof insertInstallmentSaleSchema>;
+export type UserWhatsappInstance = typeof userWhatsappInstances.$inferSelect;
+export type InsertUserWhatsappInstance = z.infer<typeof insertUserWhatsappInstanceSchema>;

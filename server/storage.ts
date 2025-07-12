@@ -7,6 +7,7 @@ import {
   plans,
   userSubscriptions,
   installmentSales,
+  userWhatsappInstances,
   type User,
   type InsertUser,
   type Client,
@@ -23,6 +24,8 @@ import {
   type InsertUserSubscription,
   type InstallmentSale,
   type InsertInstallmentSale,
+  type UserWhatsappInstance,
+  type InsertUserWhatsappInstance,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, or } from "drizzle-orm";
@@ -84,6 +87,13 @@ export interface IStorage {
   // WhatsApp operations
   getWhatsappMessages(userId: number): Promise<(WhatsappMessage & { client: Client })[]>;
   createWhatsappMessage(message: InsertWhatsappMessage, userId: number): Promise<WhatsappMessage>;
+  
+  // User WhatsApp instances
+  getUserWhatsappInstances(userId: number): Promise<UserWhatsappInstance[]>;
+  createUserWhatsappInstance(instance: InsertUserWhatsappInstance, userId: number): Promise<UserWhatsappInstance>;
+  updateUserWhatsappInstance(instanceId: number, instance: Partial<UserWhatsappInstance>, userId: number): Promise<UserWhatsappInstance>;
+  deleteUserWhatsappInstance(instanceId: number, userId: number): Promise<void>;
+  getUserWhatsappInstanceByName(instanceName: string, userId: number): Promise<UserWhatsappInstance | undefined>;
   
   // Dashboard operations
   getDashboardData(userId: number): Promise<{
@@ -741,6 +751,57 @@ export class DatabaseStorage implements IStorage {
 
     // Insert all receivables
     await db.insert(receivables).values(receivableData);
+  }
+
+  // User WhatsApp instances methods
+  async getUserWhatsappInstances(userId: number): Promise<UserWhatsappInstance[]> {
+    return await db.query.userWhatsappInstances.findMany({
+      where: eq(userWhatsappInstances.userId, userId),
+      orderBy: [desc(userWhatsappInstances.createdAt)],
+    });
+  }
+
+  async createUserWhatsappInstance(instance: InsertUserWhatsappInstance, userId: number): Promise<UserWhatsappInstance> {
+    const [newInstance] = await db
+      .insert(userWhatsappInstances)
+      .values({
+        ...instance,
+        userId: userId,
+      })
+      .returning();
+    return newInstance;
+  }
+
+  async updateUserWhatsappInstance(instanceId: number, instance: Partial<UserWhatsappInstance>, userId: number): Promise<UserWhatsappInstance> {
+    const [updatedInstance] = await db
+      .update(userWhatsappInstances)
+      .set({
+        ...instance,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(userWhatsappInstances.id, instanceId), eq(userWhatsappInstances.userId, userId)))
+      .returning();
+    
+    if (!updatedInstance) {
+      throw new Error('WhatsApp instance not found');
+    }
+    
+    return updatedInstance;
+  }
+
+  async deleteUserWhatsappInstance(instanceId: number, userId: number): Promise<void> {
+    await db
+      .delete(userWhatsappInstances)
+      .where(and(eq(userWhatsappInstances.id, instanceId), eq(userWhatsappInstances.userId, userId)));
+  }
+
+  async getUserWhatsappInstanceByName(instanceName: string, userId: number): Promise<UserWhatsappInstance | undefined> {
+    return await db.query.userWhatsappInstances.findFirst({
+      where: and(
+        eq(userWhatsappInstances.instanceName, instanceName),
+        eq(userWhatsappInstances.userId, userId)
+      ),
+    });
   }
 }
 
