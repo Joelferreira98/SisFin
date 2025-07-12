@@ -22,9 +22,10 @@ export default function Home() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
 
-  const { data: dashboardData, isLoading: isDashboardLoading } = useQuery({
+  const { data: dashboardData, isLoading: isDashboardLoading, error: dashboardError } = useQuery({
     queryKey: ["/api/dashboard"],
     retry: false,
+    enabled: isAuthenticated, // Only run query if user is authenticated
   });
 
   useEffect(() => {
@@ -40,6 +41,20 @@ export default function Home() {
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
+
+  // Handle dashboard authentication errors
+  useEffect(() => {
+    if (dashboardError && isUnauthorizedError(dashboardError)) {
+      toast({
+        title: "Session Expired",
+        description: "Your session has expired. Please log in again.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 500);
+    }
+  }, [dashboardError, toast]);
 
   if (isLoading || isDashboardLoading) {
     return (
