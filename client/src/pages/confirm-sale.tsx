@@ -42,17 +42,29 @@ export default function ConfirmSale() {
 
   const confirmSaleMutation = useMutation({
     mutationFn: async (documentPhotoUrl: string) => {
-      const response = await fetch(`/api/confirm-sale/${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentPhotoUrl }),
-      });
-      if (!response.ok) {
-        throw new Error("Falha ao confirmar venda");
+      try {
+        const response = await fetch(`/api/confirm-sale/${token}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentPhotoUrl }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('Confirmation error:', errorData);
+          throw new Error(`Falha ao confirmar venda: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Confirmation success:', result);
+        return result;
+      } catch (error) {
+        console.error('Mutation error:', error);
+        throw error;
       }
-      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Confirmation successful:', data);
       setIsSubmitted(true);
       toast({
         title: "Sucesso",
@@ -60,6 +72,7 @@ export default function ConfirmSale() {
       });
     },
     onError: (error) => {
+      console.error('Confirmation mutation error:', error);
       toast({
         title: "Erro",
         description: error.message || "Falha ao confirmar venda",
@@ -132,6 +145,19 @@ export default function ConfirmSale() {
       return;
     }
 
+    // Check if image is too large (over 10MB as base64 can be ~33% larger)
+    const sizeInMB = (previewUrl.length * 0.75) / (1024 * 1024);
+    if (sizeInMB > 10) {
+      toast({
+        title: "Erro",
+        description: "A imagem é muito grande. Tente uma imagem menor.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log(`Submitting document photo. Size: ${sizeInMB.toFixed(2)}MB`);
+    
     // In a real application, you would upload the image to a storage service
     // For now, we'll use the data URL as a placeholder
     confirmSaleMutation.mutate(previewUrl);

@@ -581,16 +581,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { documentPhotoUrl } = req.body;
       
+      console.log(`Confirming sale with token: ${req.params.token}`);
+      console.log(`Document photo URL length: ${documentPhotoUrl ? documentPhotoUrl.length : 0}`);
+      
+      if (!documentPhotoUrl) {
+        return res.status(400).json({ message: "Document photo is required" });
+      }
+      
       const sale = await storage.updateInstallmentSaleByToken(req.params.token, {
         documentPhotoUrl,
         clientSignedAt: new Date(),
         status: "confirmed"
       });
       
+      console.log(`Sale confirmed successfully: ${sale.id}`);
       res.json(sale);
     } catch (error) {
       console.error("Error confirming sale:", error);
-      res.status(500).json({ message: "Failed to confirm sale" });
+      res.status(500).json({ message: "Failed to confirm sale", error: error.message });
     }
   });
 
