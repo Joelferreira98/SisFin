@@ -9,13 +9,23 @@ import PayableModal from "@/components/modals/payable-modal";
 import PayablesTable from "@/components/tables/payables-table";
 import FinancialCard from "@/components/cards/financial-card";
 import { Button } from "@/components/ui/button";
-import { Plus, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Clock, AlertTriangle, CheckCircle, Search, Filter } from "lucide-react";
 import type { Payable } from "@shared/schema";
 
 export default function Payables() {
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPayable, setEditingPayable] = useState<Payable | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   const { data: payables, isLoading } = useQuery({
     queryKey: ["/api/payables"],
@@ -107,6 +117,20 @@ export default function Payables() {
     setEditingPayable(null);
   };
 
+  const filteredPayables = payables?.filter((payable: Payable & { receiver: any }) => {
+    const matchesSearch = payable.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         payable.receiver.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || payable.status === statusFilter;
+    const matchesType = typeFilter === "all" || payable.type === typeFilter;
+    
+    // Filter by month
+    const dueDate = new Date(payable.dueDate);
+    const payableMonth = `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}`;
+    const matchesMonth = payableMonth === selectedMonth;
+    
+    return matchesSearch && matchesStatus && matchesType && matchesMonth;
+  }) || [];
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -133,7 +157,11 @@ export default function Payables() {
           <h2 className="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">
             Contas a Pagar
           </h2>
-          <Button onClick={() => setIsModalOpen(true)} className="bg-error hover:bg-error/90">
+          <Button 
+            onClick={() => setIsModalOpen(true)} 
+            className="bg-red-600 hover:bg-red-700 text-white"
+            size="default"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Nova Conta a Pagar
           </Button>
@@ -161,9 +189,67 @@ export default function Payables() {
           />
         </div>
 
+        {/* Filters and Search */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtros
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por descrição ou fornecedor..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Status</SelectItem>
+                  <SelectItem value="pending">Pendentes</SelectItem>
+                  <SelectItem value="paid">Pagos</SelectItem>
+                  <SelectItem value="overdue">Vencidos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Tipos</SelectItem>
+                  <SelectItem value="single">Conta Única</SelectItem>
+                  <SelectItem value="installment">Parcela</SelectItem>
+                  <SelectItem value="recurring">Recorrente</SelectItem>
+                </SelectContent>
+              </Select>
+              <div>
+                <label className="block text-sm font-medium mb-1">Mês</label>
+                <Input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">
+                  {filteredPayables.length} de {payables?.length || 0} contas
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Payables Table */}
         <PayablesTable
-          payables={payables || []}
+          payables={filteredPayables}
           isLoading={isLoading}
           onMarkAsPaid={handleMarkAsPaid}
           onEdit={handleEdit}

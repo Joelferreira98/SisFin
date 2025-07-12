@@ -23,6 +23,10 @@ export default function Receivables() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   const { data: receivables, isLoading } = useQuery({
     queryKey: ["/api/receivables"],
@@ -109,7 +113,12 @@ export default function Receivables() {
     const matchesStatus = statusFilter === "all" || receivable.status === statusFilter;
     const matchesType = typeFilter === "all" || receivable.type === typeFilter;
     
-    return matchesSearch && matchesStatus && matchesType;
+    // Filter by month
+    const dueDate = new Date(receivable.dueDate);
+    const receivableMonth = `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}`;
+    const matchesMonth = receivableMonth === selectedMonth;
+    
+    return matchesSearch && matchesStatus && matchesType && matchesMonth;
   }) || [];
 
 
@@ -219,7 +228,7 @@ export default function Receivables() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -251,6 +260,14 @@ export default function Receivables() {
                   <SelectItem value="recurring">Recorrente</SelectItem>
                 </SelectContent>
               </Select>
+              <div>
+                <label className="block text-sm font-medium mb-1">Mês</label>
+                <Input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">
                   {filteredReceivables.length} de {receivables?.length || 0} contas
