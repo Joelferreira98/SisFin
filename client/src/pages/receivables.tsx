@@ -66,6 +66,39 @@ export default function Receivables() {
     },
   });
 
+  const sendWhatsAppReminderMutation = useMutation({
+    mutationFn: async (receivableId: number) => {
+      const response = await apiRequest("POST", "/api/whatsapp/send-reminder", {
+        receivableId,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Lembrete enviado",
+        description: "Lembrete enviado via WhatsApp com sucesso",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Erro",
+        description: "Erro ao enviar lembrete via WhatsApp",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/receivables/${id}`);
@@ -153,6 +186,16 @@ export default function Receivables() {
   const handleDelete = (id: number) => {
     if (confirm("Tem certeza que deseja excluir esta conta?")) {
       deleteMutation.mutate(id);
+    }
+  };
+
+  const handleSendWhatsApp = (receivable: Receivable & { client: Client }) => {
+    const isOverdue = new Date(receivable.dueDate) < new Date() && receivable.status === 'pending';
+    
+    if (isOverdue) {
+      sendWhatsAppReminderMutation.mutate(receivable.id);
+    } else {
+      sendWhatsAppReminderMutation.mutate(receivable.id);
     }
   };
 
@@ -284,6 +327,7 @@ export default function Receivables() {
           onMarkAsPaid={handleMarkAsPaid}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onSendWhatsApp={handleSendWhatsApp}
         />
 
         {/* Receivable Modal */}

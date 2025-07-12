@@ -11,6 +11,7 @@ interface ReceivablesTableProps {
   onMarkAsPaid: (id: number) => void;
   onEdit: (receivable: Receivable) => void;
   onDelete: (id: number) => void;
+  onSendWhatsApp?: (receivable: Receivable & { client: Client }) => void;
 }
 
 export default function ReceivablesTable({ 
@@ -18,7 +19,8 @@ export default function ReceivablesTable({
   isLoading, 
   onMarkAsPaid, 
   onEdit, 
-  onDelete 
+  onDelete,
+  onSendWhatsApp 
 }: ReceivablesTableProps) {
   if (isLoading) {
     return (
@@ -191,14 +193,17 @@ export default function ReceivablesTable({
                           <Check className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-primary hover:text-primary/80"
-                        title="Enviar lembrete"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
+                      {onSendWhatsApp && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onSendWhatsApp(receivable)}
+                          className="text-green-600 hover:text-green-700"
+                          title="Enviar lembrete via WhatsApp"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

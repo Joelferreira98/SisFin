@@ -5,12 +5,14 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Header from "@/components/layout/header";
 import Navigation from "@/components/layout/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import WhatsAppConfig from "@/components/whatsapp-config";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   MessageSquare, 
   CheckCircle, 
@@ -20,8 +22,12 @@ import {
   Plus,
   Edit,
   Users,
-  MessageCircle
+  MessageCircle,
+  History,
+  Settings
 } from "lucide-react";
+import { format } from "date-fns";
+import type { Client, WhatsappMessage } from "@shared/schema";
 
 export default function WhatsApp() {
   const { toast } = useToast();
@@ -177,14 +183,10 @@ export default function WhatsApp() {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Integração WhatsApp
           </h2>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
-              <div>
-                <p className="text-green-800 font-medium">Sistema de Mensagens Ativo</p>
-                <p className="text-green-700 text-sm">Última sincronização: agora</p>
-              </div>
-            </div>
+          
+          {/* Configuration Component */}
+          <div className="mb-6">
+            <WhatsAppConfig />
           </div>
         </div>
 

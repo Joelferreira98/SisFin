@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
+import { getWhatsAppService } from "./whatsapp";
 import { insertClientSchema, insertReceivableSchema, insertPayableSchema, insertPlanSchema, insertInstallmentSaleSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -453,6 +454,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting plan:", error);
       res.status(500).json({ message: "Failed to delete plan" });
+    }
+  });
+
+  // WhatsApp routes
+  app.get('/api/whatsapp/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const messages = await storage.getWhatsappMessages(userId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching WhatsApp messages:", error);
+      res.status(500).json({ message: "Failed to fetch WhatsApp messages" });
+    }
+  });
+
+  app.post('/api/whatsapp/send-reminder', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { receivableId } = req.body;
+      
+      // Buscar o recebível e cliente
+      const receivable = await storage.getReceivable(receivableId, userId);
+      if (!receivable) {
+        return res.status(404).json({ message: "Receivable not found" });
+      }
+      
+      const client = await storage.getClient(receivable.clientId, userId);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      const whatsappService = getWhatsAppService();
+      if (!whatsappService) {
+        return res.status(500).json({ message: "WhatsApp service not configured" });
+      }
+      
+      const success = await whatsappService.sendPaymentReminder(
+        client.id,
+        client.name,
+        client.whatsapp,
+        parseFloat(receivable.amount),
+        new Date(receivable.dueDate),
+        receivable.description,
+        userId
+      );
+      
+      if (success) {
+        res.json({ message: "Reminder sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send reminder" });
+      }
+    } catch (error) {
+      console.error("Error sending reminder:", error);
+      res.status(500).json({ message: "Failed to send reminder" });
+    }
+  });
+
+  app.post('/api/whatsapp/send-overdue', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { receivableId } = req.body;
+      
+      // Buscar o recebível e cliente
+      const receivable = await storage.getReceivable(receivableId, userId);
+      if (!receivable) {
+        return res.status(404).json({ message: "Receivable not found" });
+      }
+      
+      const client = await storage.getClient(receivable.clientId, userId);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      const whatsappService = getWhatsAppService();
+      if (!whatsappService) {
+        return res.status(500).json({ message: "WhatsApp service not configured" });
+      }
+      
+      const success = await whatsappService.sendOverdueNotification(
+        client.id,
+        client.name,
+        client.whatsapp,
+        parseFloat(receivable.amount),
+        new Date(receivable.dueDate),
+        receivable.description,
+        userId
+      );
+      
+      if (success) {
+        res.json({ message: "Overdue notification sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send overdue notification" });
+      }
+    } catch (error) {
+      console.error("Error sending overdue notification:", error);
+      res.status(500).json({ message: "Failed to send overdue notification" });
+    }
+  });
+
+  app.post('/api/whatsapp/send-confirmation', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { installmentSaleId } = req.body;
+      
+      // Buscar a venda parcelada e cliente
+      const sale = await storage.getInstallmentSale(installmentSaleId, userId);
+      if (!sale) {
+        return res.status(404).json({ message: "Installment sale not found" });
+      }
+      
+      const client = await storage.getClient(sale.clientId, userId);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      const whatsappService = getWhatsAppService();
+      if (!whatsappService) {
+        return res.status(500).json({ message: "WhatsApp service not configured" });
+      }
+      
+      const success = await whatsappService.sendInstallmentConfirmationRequest(
+        client.id,
+        client.name,
+        client.whatsapp,
+        sale.description,
+        parseFloat(sale.totalAmount),
+        sale.installmentCount,
+        sale.confirmationToken,
+        userId
+      );
+      
+      if (success) {
+        res.json({ message: "Confirmation request sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send confirmation request" });
+      }
+    } catch (error) {
+      console.error("Error sending confirmation request:", error);
+      res.status(500).json({ message: "Failed to send confirmation request" });
+    }
+  });
+
+  app.get('/api/whatsapp/test-connection', isAuthenticated, async (req: any, res) => {
+    try {
+      const whatsappService = getWhatsAppService();
+      if (!whatsappService) {
+        return res.status(500).json({ 
+          message: "WhatsApp service not configured", 
+          configured: false 
+        });
+      }
+      
+      const isConnected = await whatsappService.testConnection();
+      res.json({ 
+        message: isConnected ? "Connection successful" : "Connection failed",
+        connected: isConnected,
+        configured: true
+      });
+    } catch (error) {
+      console.error("Error testing WhatsApp connection:", error);
+      res.status(500).json({ message: "Failed to test connection" });
     }
   });
 
