@@ -46,8 +46,9 @@ export function setupAuth(app: Express) {
     store: sessionStore,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Desabilitar secure para development
       maxAge: sessionTtl,
+      sameSite: 'lax', // Permitir cookies cross-site para desenvolvimento
     },
   };
 
@@ -155,8 +156,8 @@ export function setupAuth(app: Express) {
 }
 
 export function isAuthenticated(req: any, res: any, next: any) {
-  if (req.isAuthenticated()) {
-    return next();
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
   }
-  res.status(401).json({ message: "Unauthorized" });
+  next();
 }
