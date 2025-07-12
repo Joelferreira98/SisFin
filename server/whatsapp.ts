@@ -183,37 +183,15 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
     }
   }
 
-  async createInstance(instanceName: string, token?: string, number?: string, useQrCode: boolean = true): Promise<{ success: boolean; data?: any; error?: string }> {
+  async createInstance(instanceName: string, token?: string): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      let payload: any;
-      
-      if (useQrCode) {
-        // Create instance with QR code for WhatsApp-Baileys
-        payload = {
-          instanceName,
-          token: token || "123456",
-          qrcode: true,
-          integration: "WHATSAPP-BAILEYS"
-        };
-      } else {
-        // Create instance without QR code for Evolution
-        let formattedNumber = number || instanceName;
-        
-        // If it's a phone number, ensure it starts with digits
-        if (formattedNumber && !/^\d+[\.\@\w-]*$/.test(formattedNumber)) {
-          // Extract only digits and add a default suffix if needed
-          const digitsOnly = formattedNumber.replace(/\D/g, '');
-          formattedNumber = digitsOnly || instanceName;
-        }
-        
-        payload = {
-          instanceName,
-          token: token || undefined,
-          number: formattedNumber,
-          qrcode: false,
-          integration: "EVOLUTION"
-        };
-      }
+      // Always use WhatsApp-Baileys with QR code
+      const payload = {
+        instanceName,
+        token: token || "123456",
+        qrcode: true,
+        integration: "WHATSAPP-BAILEYS"
+      };
 
       const response = await fetch(`${this.config.apiUrl}/instance/create`, {
         method: 'POST',

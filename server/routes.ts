@@ -261,9 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const evolutionResult = await whatsappService.createInstance(
         instanceData.instanceName,
-        instanceData.token,
-        instanceData.phoneNumber,
-        instanceData.useQrCode || true
+        instanceData.token
       );
       
       if (!evolutionResult.success) {
@@ -276,11 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const instance = await storage.createUserWhatsappInstance({
         ...instanceData,
         status: 'connecting',
-        instanceId: evolutionResult.data?.instance?.instanceId,
-        integration: evolutionResult.data?.instance?.integration || 'WHATSAPP-BAILEYS',
-        qrCode: evolutionResult.data?.qrcode?.code,
-        qrCodeBase64: evolutionResult.data?.qrcode?.base64,
-        useQrCode: instanceData.useQrCode || true
+        qrCode: evolutionResult.data?.qrcode?.code
       }, userId);
       
       res.status(201).json({

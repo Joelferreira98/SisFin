@@ -21,8 +21,6 @@ export default function WhatsAppInstanceManager() {
   const [newInstance, setNewInstance] = useState({
     instanceName: "",
     displayName: "",
-    phoneNumber: "",
-    useQrCode: true,
     token: ""
   });
 
@@ -52,7 +50,7 @@ export default function WhatsAppInstanceManager() {
         });
       } else {
         setIsCreateModalOpen(false);
-        setNewInstance({ instanceName: "", displayName: "", phoneNumber: "", useQrCode: true, token: "" });
+        setNewInstance({ instanceName: "", displayName: "", token: "" });
         toast({
           title: "Sucesso!",
           description: "Instância WhatsApp criada com sucesso",
@@ -210,46 +208,22 @@ export default function WhatsAppInstanceManager() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="phoneNumber">Número do Telefone (opcional)</Label>
-                    <Input
-                      id="phoneNumber"
-                      placeholder="5511999999999"
-                      value={newInstance.phoneNumber}
-                      onChange={(e) => {
-                        // Allow only numbers and some special characters following Evolution API pattern
-                        const value = e.target.value.replace(/[^\d\.@\w-]/g, '');
-                        setNewInstance({...newInstance, phoneNumber: value});
-                      }}
-                      disabled={newInstance.useQrCode}
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      {newInstance.useQrCode ? "Não usado com QR Code" : "Formato aceito: números seguidos por .@\w- (ex: 5511999999999)"}
-                    </p>
-                  </div>
-                  <div>
                     <Label htmlFor="token">Token (opcional)</Label>
                     <Input
                       id="token"
-                      placeholder="Deixe em branco para usar padrão"
+                      placeholder="Deixe em branco para usar padrão (123456)"
                       value={newInstance.token}
                       onChange={(e) => setNewInstance({...newInstance, token: e.target.value})}
                     />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Token usado para autenticação da instância
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="useQrCode"
-                      checked={newInstance.useQrCode}
-                      onChange={(e) => setNewInstance({...newInstance, useQrCode: e.target.checked})}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <Label htmlFor="useQrCode">Usar QR Code (WhatsApp-Baileys)</Label>
+                  <div className="bg-blue-50 p-3 rounded-md">
+                    <p className="text-sm text-blue-800">
+                      <strong>Modo WhatsApp-Baileys:</strong> Será gerado um QR Code para você escanear com seu WhatsApp e conectar a instância.
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-500">
-                    {newInstance.useQrCode 
-                      ? "Será gerado um QR Code para escaneamento com WhatsApp" 
-                      : "Conexão direta sem QR Code (Evolution)"}
-                  </p>
                   {qrCodeData && qrCodeData.base64 ? (
                     <div className="space-y-4">
                       <div className="text-center">
@@ -270,7 +244,7 @@ export default function WhatsAppInstanceManager() {
                           onClick={() => {
                             setQrCodeData(null);
                             setIsCreateModalOpen(false);
-                            setNewInstance({ instanceName: "", displayName: "", phoneNumber: "", useQrCode: true, token: "" });
+                            setNewInstance({ instanceName: "", displayName: "", token: "" });
                           }}
                           variant="outline"
                           className="flex-1"
