@@ -126,6 +126,14 @@ export function setupAuth(app: Express) {
     });
   });
 
+  app.get("/api/login", (req, res) => {
+    // Return login status for GET requests
+    res.status(200).json({ 
+      message: "Login endpoint - use POST to authenticate",
+      authenticated: req.isAuthenticated()
+    });
+  });
+
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
