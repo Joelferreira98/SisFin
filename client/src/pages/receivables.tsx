@@ -178,7 +178,11 @@ export default function Receivables() {
           <h2 className="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">
             Contas a Receber
           </h2>
-          <Button onClick={() => setIsModalOpen(true)} className="bg-success hover:bg-success/90">
+          <Button 
+            onClick={() => setIsModalOpen(true)} 
+            className="bg-green-600 hover:bg-green-700 text-white"
+            size="default"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Nova Conta a Receber
           </Button>
