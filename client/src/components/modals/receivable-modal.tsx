@@ -222,6 +222,19 @@ export default function ReceivableModal({ isOpen, onClose, receivable }: Receiva
       const installmentAmount = totalAmount / formData.totalInstallments;
       const baseDate = new Date(formData.dueDate);
       
+      // Primeiro, criar a entrada na tabela de vendas parceladas para gerar o token de confirmação
+      const installmentSaleData = {
+        clientId: formData.clientId,
+        description: formData.description,
+        totalAmount: totalAmount.toString(),
+        installmentCount: formData.totalInstallments,
+        installmentValue: installmentAmount.toFixed(2),
+        firstDueDate: baseDate,
+      };
+      
+      const installmentSaleResponse = await apiRequest("POST", "/api/installment-sales", installmentSaleData);
+      const installmentSale = await installmentSaleResponse.json();
+      
       // Gerar todas as parcelas
       const installments = [];
       for (let i = 1; i <= formData.totalInstallments; i++) {
@@ -237,6 +250,7 @@ export default function ReceivableModal({ isOpen, onClose, receivable }: Receiva
           type: "installment" as const,
           installmentNumber: i,
           totalInstallments: formData.totalInstallments,
+          parentId: installmentSale.id, // Vincular ao installment sale
         };
         
         installments.push(installmentData);
@@ -251,10 +265,11 @@ export default function ReceivableModal({ isOpen, onClose, receivable }: Receiva
       
       queryClient.invalidateQueries({ queryKey: ["/api/receivables"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/installment-sales"] });
       
       toast({
-        title: "Parcelas criadas",
-        description: `${formData.totalInstallments} parcelas foram criadas com sucesso`,
+        title: "Venda parcelada criada",
+        description: `${formData.totalInstallments} parcelas criadas com sucesso. Link de confirmação gerado!`,
       });
       
       onClose();
