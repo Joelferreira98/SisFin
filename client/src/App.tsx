@@ -26,7 +26,7 @@ function Router() {
       <ProtectedRoute path="/payables" component={Payables} />
       <ProtectedRoute path="/reports" component={Reports} />
       <ProtectedRoute path="/whatsapp" component={WhatsApp} />
-      <ProtectedRoute path="/installment-sales" component={InstallmentSales} />
+      <ProtectedRoute path="/confirmations" component={InstallmentSales} />
       <ProtectedRoute path="/admin" component={Admin} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/confirm-sale/:token" component={ConfirmSale} />

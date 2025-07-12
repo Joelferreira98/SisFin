@@ -173,6 +173,20 @@ The application follows a modern full-stack architecture with clear separation o
 - **Modal Workflows**: Intuitive modal-based forms for creation and approval
 - **Image Preview**: Real-time image preview with compression feedback
 - **Responsive Design**: Mobile-friendly confirmation page for client access
-- **Navigation**: Added "Vendas Parceladas" to main navigation menu
+- **Navigation**: Added "Confirmações" to main navigation menu (renamed from "Vendas Parceladas")
 
 The installment sales system is now fully operational with comprehensive digital signature workflow, admin approval process, and real-time status tracking.
+
+## Recent Updates (July 12, 2025 - Evening)
+
+### System Integration and Menu Restructuring
+- **Automatic Receivables Generation**: When installment sales are approved, the system now automatically creates corresponding receivable entries
+- **Menu Reorganization**: Renamed "Vendas Parceladas" to "Confirmações" and removed sale creation functionality from this menu
+- **Workflow Optimization**: Sales are now created through the "Contas a Receber" module, while "Confirmações" is used only for viewing and approving sales
+- **Integration Testing**: Verified that approved sales correctly generate individual installment entries in accounts receivable
+
+### Technical Implementation
+- **Database Integration**: Fixed variable naming conflicts in storage layer for receivables creation
+- **Route Updates**: Modified application routes to reflect new menu structure (/confirmations instead of /installment-sales)
+- **Interface Simplification**: Removed creation forms from confirmations page, focusing on approval workflow
+- **Error Handling**: Improved error handling in receivables generation process

@@ -19,7 +19,7 @@ export default function Navigation() {
     { name: "Clientes", path: "/clients", icon: Users },
     { name: "Contas a Receber", path: "/receivables", icon: TrendingDown },
     { name: "Contas a Pagar", path: "/payables", icon: TrendingUp },
-    { name: "Vendas Parceladas", path: "/installment-sales", icon: CreditCard },
+    { name: "Confirmações", path: "/confirmations", icon: CreditCard },
     { name: "Relatórios", path: "/reports", icon: BarChart3 },
     { name: "WhatsApp", path: "/whatsapp", icon: MessageSquare },
     { name: "Admin", path: "/admin", icon: Settings },

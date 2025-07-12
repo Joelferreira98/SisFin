@@ -9,15 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { 
-  Plus, 
   Eye, 
   Check, 
   X, 
@@ -33,19 +25,8 @@ import {
   Link as LinkIcon
 } from "lucide-react";
 import { format } from "date-fns";
-import { InsertInstallmentSale, InstallmentSale, Client } from "@shared/schema";
+import { InstallmentSale, Client } from "@shared/schema";
 import { isUnauthorizedError } from "@/lib/authUtils";
-
-const installmentSaleSchema = z.object({
-  clientId: z.number().min(1, "Cliente é obrigatório"),
-  description: z.string().min(1, "Descrição é obrigatória"),
-  totalAmount: z.string().min(1, "Valor total é obrigatório"),
-  installmentCount: z.number().min(1, "Número de parcelas é obrigatório"),
-  installmentValue: z.string().min(1, "Valor da parcela é obrigatório"),
-  firstDueDate: z.string().min(1, "Data de vencimento é obrigatória"),
-});
-
-type InstallmentSaleFormData = z.infer<typeof installmentSaleSchema>;
 
 interface InstallmentSaleWithClient extends InstallmentSale {
   client: Client;
@@ -55,7 +36,6 @@ export default function InstallmentSales() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [selectedSale, setSelectedSale] = useState<InstallmentSaleWithClient | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState("");
@@ -79,64 +59,7 @@ export default function InstallmentSales() {
     enabled: isAuthenticated,
   });
 
-  const { data: clients } = useQuery({
-    queryKey: ["/api/clients"],
-    enabled: isAuthenticated,
-  });
 
-  const form = useForm<InstallmentSaleFormData>({
-    resolver: zodResolver(installmentSaleSchema),
-    defaultValues: {
-      clientId: 0,
-      description: "",
-      totalAmount: "",
-      installmentCount: 1,
-      installmentValue: "",
-      firstDueDate: "",
-    },
-  });
-
-  const createSaleMutation = useMutation({
-    mutationFn: async (data: InsertInstallmentSale) => {
-      const response = await fetch("/api/installment-sales", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/installment-sales"] });
-      toast({
-        title: "Sucesso",
-        description: "Venda parcelada criada com sucesso",
-      });
-      setIsCreateModalOpen(false);
-      form.reset();
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Não autorizado",
-          description: "Você foi desconectado. Redirecionando...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/auth";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Erro",
-        description: "Falha ao criar venda parcelada",
-        variant: "destructive",
-      });
-    },
-  });
 
   const approveSaleMutation = useMutation({
     mutationFn: async ({ id, approved, notes }: { id: number; approved: boolean; notes: string }) => {
@@ -180,27 +103,7 @@ export default function InstallmentSales() {
     },
   });
 
-  const onSubmit = (data: InstallmentSaleFormData) => {
-    createSaleMutation.mutate({
-      ...data,
-      totalAmount: data.totalAmount,
-      installmentValue: data.installmentValue,
-      firstDueDate: new Date(data.firstDueDate),
-    });
-  };
 
-  const handleTotalAmountChange = (value: string) => {
-    const total = parseFloat(value) || 0;
-    const count = form.watch("installmentCount") || 1;
-    const installmentValue = (total / count).toFixed(2);
-    form.setValue("installmentValue", installmentValue);
-  };
-
-  const handleInstallmentCountChange = (value: number) => {
-    const total = parseFloat(form.watch("totalAmount")) || 0;
-    const installmentValue = (total / value).toFixed(2);
-    form.setValue("installmentValue", installmentValue);
-  };
 
   const copyConfirmationLink = (token: string) => {
     const link = `${window.location.origin}/confirm-sale/${token}`;
@@ -242,142 +145,10 @@ export default function InstallmentSales() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Vendas Parceladas</h1>
-        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Venda Parcelada
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Nova Venda Parcelada</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="clientId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cliente</FormLabel>
-                        <Select onValueChange={(value) => field.onChange(Number(value))}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o cliente" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {clients?.map((client: Client) => (
-                              <SelectItem key={client.id} value={client.id.toString()}>
-                                {client.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="firstDueDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Data do Primeiro Vencimento</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} placeholder="Descrição da venda..." />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="totalAmount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Valor Total (R$)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            {...field}
-                            onChange={(e) => {
-                              field.onChange(e.target.value);
-                              handleTotalAmountChange(e.target.value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="installmentCount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Número de Parcelas</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="1" 
-                            {...field}
-                            onChange={(e) => {
-                              const value = Number(e.target.value);
-                              field.onChange(value);
-                              handleInstallmentCountChange(value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="installmentValue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Valor da Parcela (R$)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" {...field} readOnly />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsCreateModalOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={createSaleMutation.isPending}>
-                    {createSaleMutation.isPending ? "Criando..." : "Criar Venda"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        <div>
+          <h1 className="text-2xl font-bold">Confirmações de Vendas</h1>
+          <p className="text-gray-600">Gerencie confirmações e aprovações de vendas parceladas</p>
+        </div>
       </div>
 
       <Tabs defaultValue="confirmed" className="w-full">
