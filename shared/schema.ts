@@ -1,0 +1,172 @@
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  jsonb,
+  index,
+  serial,
+  decimal,
+  boolean,
+  integer,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+import { relations } from "drizzle-orm";
+
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table for Replit Auth
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Clients table
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: varchar("name").notNull(),
+  whatsapp: varchar("whatsapp").notNull(),
+  document: varchar("document").notNull(), // CPF or CNPJ
+  email: varchar("email"),
+  address: text("address"),
+  zipCode: varchar("zip_code"),
+  city: varchar("city"),
+  state: varchar("state"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Accounts Receivable table
+export const receivables = pgTable("receivables", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  clientId: integer("client_id").notNull().references(() => clients.id),
+  description: text("description").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  status: varchar("status").notNull().default("pending"), // pending, paid, overdue
+  type: varchar("type").notNull().default("single"), // single, installment, recurring
+  installmentNumber: integer("installment_number"),
+  totalInstallments: integer("total_installments"),
+  parentId: integer("parent_id"), // For linking installments
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Accounts Payable table
+export const payables = pgTable("payables", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  receiverId: integer("receiver_id").notNull().references(() => clients.id),
+  description: text("description").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  status: varchar("status").notNull().default("pending"), // pending, paid, overdue
+  type: varchar("type").notNull().default("single"), // single, installment, recurring
+  installmentNumber: integer("installment_number"),
+  totalInstallments: integer("total_installments"),
+  parentId: integer("parent_id"), // For linking installments
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// WhatsApp Messages table
+export const whatsappMessages = pgTable("whatsapp_messages", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  clientId: integer("client_id").notNull().references(() => clients.id),
+  content: text("content").notNull(),
+  templateType: varchar("template_type"), // reminder, overdue, custom
+  status: varchar("status").notNull().default("sent"), // sent, delivered, read, failed
+  sentAt: timestamp("sent_at").defaultNow(),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  clients: many(clients),
+  receivables: many(receivables),
+  payables: many(payables),
+  whatsappMessages: many(whatsappMessages),
+}));
+
+export const clientsRelations = relations(clients, ({ one, many }) => ({
+  user: one(users, { fields: [clients.userId], references: [users.id] }),
+  receivables: many(receivables),
+  payables: many(payables),
+  whatsappMessages: many(whatsappMessages),
+}));
+
+export const receivablesRelations = relations(receivables, ({ one, many }) => ({
+  user: one(users, { fields: [receivables.userId], references: [users.id] }),
+  client: one(clients, { fields: [receivables.clientId], references: [clients.id] }),
+  parent: one(receivables, { fields: [receivables.parentId], references: [receivables.id] }),
+  installments: many(receivables),
+}));
+
+export const payablesRelations = relations(payables, ({ one, many }) => ({
+  user: one(users, { fields: [payables.userId], references: [users.id] }),
+  receiver: one(clients, { fields: [payables.receiverId], references: [clients.id] }),
+  parent: one(payables, { fields: [payables.parentId], references: [payables.id] }),
+  installments: many(payables),
+}));
+
+export const whatsappMessagesRelations = relations(whatsappMessages, ({ one }) => ({
+  user: one(users, { fields: [whatsappMessages.userId], references: [users.id] }),
+  client: one(clients, { fields: [whatsappMessages.clientId], references: [clients.id] }),
+}));
+
+// Zod schemas
+export const insertClientSchema = createInsertSchema(clients).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertReceivableSchema = createInsertSchema(receivables).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPayableSchema = createInsertSchema(payables).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWhatsappMessageSchema = createInsertSchema(whatsappMessages).omit({
+  id: true,
+  userId: true,
+  sentAt: true,
+});
+
+// Types
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = z.infer<typeof insertClientSchema>;
+export type Receivable = typeof receivables.$inferSelect;
+export type InsertReceivable = z.infer<typeof insertReceivableSchema>;
+export type Payable = typeof payables.$inferSelect;
+export type InsertPayable = z.infer<typeof insertPayableSchema>;
+export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
+export type InsertWhatsappMessage = z.infer<typeof insertWhatsappMessageSchema>;
