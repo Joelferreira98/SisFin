@@ -224,6 +224,33 @@ export const userSubscriptionsRelations = relations(userSubscriptions, ({ one })
   }),
 }));
 
+// Installment Sales table
+export const installmentSales = pgTable("installment_sales", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  clientId: integer("client_id").references(() => clients.id, { onDelete: "cascade" }).notNull(),
+  description: text("description").notNull(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  installmentCount: integer("installment_count").notNull(),
+  installmentValue: decimal("installment_value", { precision: 10, scale: 2 }).notNull(),
+  firstDueDate: timestamp("first_due_date").notNull(),
+  confirmationToken: varchar("confirmation_token").unique().notNull(),
+  status: varchar("status").notNull().default("pending"), // pending, confirmed, approved, rejected
+  documentPhotoUrl: text("document_photo_url"),
+  clientSignedAt: timestamp("client_signed_at"),
+  userReviewedAt: timestamp("user_reviewed_at"),
+  userApprovedAt: timestamp("user_approved_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const installmentSalesRelations = relations(installmentSales, ({ one, many }) => ({
+  user: one(users, { fields: [installmentSales.userId], references: [users.id] }),
+  client: one(clients, { fields: [installmentSales.clientId], references: [clients.id] }),
+  installments: many(receivables),
+}));
+
 export const insertPlanSchema = createInsertSchema(plans).omit({
   id: true,
   createdAt: true,
@@ -236,7 +263,22 @@ export const insertUserSubscriptionSchema = createInsertSchema(userSubscriptions
   updatedAt: true,
 });
 
+export const insertInstallmentSaleSchema = createInsertSchema(installmentSales).omit({
+  id: true,
+  userId: true,
+  confirmationToken: true,
+  clientSignedAt: true,
+  userReviewedAt: true,
+  userApprovedAt: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  firstDueDate: z.string().transform((val) => new Date(val)),
+});
+
 export type Plan = typeof plans.$inferSelect;
 export type InsertPlan = z.infer<typeof insertPlanSchema>;
 export type UserSubscription = typeof userSubscriptions.$inferSelect;
 export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;
+export type InstallmentSale = typeof installmentSales.$inferSelect;
+export type InsertInstallmentSale = z.infer<typeof insertInstallmentSaleSchema>;

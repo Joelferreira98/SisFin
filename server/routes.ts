@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
-import { insertClientSchema, insertReceivableSchema, insertPayableSchema, insertPlanSchema } from "@shared/schema";
+import { insertClientSchema, insertReceivableSchema, insertPayableSchema, insertPlanSchema, insertInstallmentSaleSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -221,6 +221,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating WhatsApp message:", error);
       res.status(500).json({ message: "Failed to create WhatsApp message" });
+    }
+  });
+
+  // Installment Sales routes
+  app.get('/api/installment-sales', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const sales = await storage.getInstallmentSales(userId);
+      res.json(sales);
+    } catch (error) {
+      console.error("Error fetching installment sales:", error);
+      res.status(500).json({ message: "Failed to fetch installment sales" });
+    }
+  });
+
+  app.get('/api/installment-sales/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const saleId = parseInt(req.params.id);
+      const sale = await storage.getInstallmentSale(saleId, userId);
+      if (!sale) {
+        return res.status(404).json({ message: "Sale not found" });
+      }
+      res.json(sale);
+    } catch (error) {
+      console.error("Error fetching installment sale:", error);
+      res.status(500).json({ message: "Failed to fetch installment sale" });
+    }
+  });
+
+  app.post('/api/installment-sales', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const saleData = insertInstallmentSaleSchema.parse(req.body);
+      const sale = await storage.createInstallmentSale(saleData, userId);
+      res.status(201).json(sale);
+    } catch (error) {
+      console.error("Error creating installment sale:", error);
+      res.status(500).json({ message: "Failed to create installment sale" });
+    }
+  });
+
+  app.put('/api/installment-sales/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const saleId = parseInt(req.params.id);
+      const saleData = insertInstallmentSaleSchema.partial().parse(req.body);
+      const sale = await storage.updateInstallmentSale(saleId, saleData, userId);
+      res.json(sale);
+    } catch (error) {
+      console.error("Error updating installment sale:", error);
+      res.status(500).json({ message: "Failed to update installment sale" });
+    }
+  });
+
+  app.delete('/api/installment-sales/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const saleId = parseInt(req.params.id);
+      await storage.deleteInstallmentSale(saleId, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting installment sale:", error);
+      res.status(500).json({ message: "Failed to delete installment sale" });
+    }
+  });
+
+  // Public route for client confirmation
+  app.get('/api/confirm-sale/:token', async (req, res) => {
+    try {
+      const sale = await storage.getInstallmentSaleByToken(req.params.token);
+      if (!sale) {
+        return res.status(404).json({ message: "Sale not found" });
+      }
+      res.json(sale);
+    } catch (error) {
+      console.error("Error fetching sale:", error);
+      res.status(500).json({ message: "Failed to fetch sale" });
+    }
+  });
+
+  app.post('/api/confirm-sale/:token', async (req, res) => {
+    try {
+      const { documentPhotoUrl } = req.body;
+      
+      const sale = await storage.updateInstallmentSaleByToken(req.params.token, {
+        documentPhotoUrl,
+        clientSignedAt: new Date(),
+        status: "confirmed"
+      });
+      
+      res.json(sale);
+    } catch (error) {
+      console.error("Error confirming sale:", error);
+      res.status(500).json({ message: "Failed to confirm sale" });
+    }
+  });
+
+  // Route for user to review and approve sales
+  app.post('/api/installment-sales/:id/approve', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const saleId = parseInt(req.params.id);
+      const { approved, notes } = req.body;
+      
+      const sale = await storage.updateInstallmentSale(saleId, {
+        status: approved ? "approved" : "rejected",
+        userReviewedAt: new Date(),
+        userApprovedAt: approved ? new Date() : null,
+        notes
+      }, userId);
+      
+      res.json(sale);
+    } catch (error) {
+      console.error("Error updating sale status:", error);
+      res.status(500).json({ message: "Failed to update sale status" });
     }
   });
 

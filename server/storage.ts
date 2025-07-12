@@ -6,6 +6,7 @@ import {
   whatsappMessages,
   plans,
   userSubscriptions,
+  installmentSales,
   type User,
   type InsertUser,
   type Client,
@@ -20,6 +21,8 @@ import {
   type InsertPlan,
   type UserSubscription,
   type InsertUserSubscription,
+  type InstallmentSale,
+  type InsertInstallmentSale,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, or } from "drizzle-orm";
@@ -91,6 +94,16 @@ export interface IStorage {
     upcomingPayments: (Receivable & { client: Client })[];
     recentActivities: any[];
   }>;
+
+  // Installment Sales operations
+  getInstallmentSales(userId: number): Promise<(InstallmentSale & { client: Client })[]>;
+  getInstallmentSale(id: number, userId: number): Promise<InstallmentSale | undefined>;
+  getInstallmentSaleByToken(token: string): Promise<(InstallmentSale & { client: Client, user: User }) | undefined>;
+  createInstallmentSale(sale: InsertInstallmentSale, userId: number): Promise<InstallmentSale>;
+  updateInstallmentSale(id: number, sale: Partial<InstallmentSale>, userId: number): Promise<InstallmentSale>;
+  updateInstallmentSaleByToken(token: string, updates: Partial<InstallmentSale>): Promise<InstallmentSale>;
+  deleteInstallmentSale(id: number, userId: number): Promise<void>;
+  generateConfirmationToken(): string;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -548,6 +561,148 @@ export class DatabaseStorage implements IStorage {
       upcomingPayments,
       recentActivities: [], // This can be implemented later
     };
+  }
+
+  // Installment Sales operations
+  async getInstallmentSales(userId: number): Promise<(InstallmentSale & { client: Client })[]> {
+    const sales = await db.select({
+      id: installmentSales.id,
+      userId: installmentSales.userId,
+      clientId: installmentSales.clientId,
+      description: installmentSales.description,
+      totalAmount: installmentSales.totalAmount,
+      installmentCount: installmentSales.installmentCount,
+      installmentValue: installmentSales.installmentValue,
+      firstDueDate: installmentSales.firstDueDate,
+      confirmationToken: installmentSales.confirmationToken,
+      status: installmentSales.status,
+      documentPhotoUrl: installmentSales.documentPhotoUrl,
+      clientSignedAt: installmentSales.clientSignedAt,
+      userReviewedAt: installmentSales.userReviewedAt,
+      userApprovedAt: installmentSales.userApprovedAt,
+      notes: installmentSales.notes,
+      createdAt: installmentSales.createdAt,
+      updatedAt: installmentSales.updatedAt,
+      client: {
+        id: clients.id,
+        name: clients.name,
+        whatsapp: clients.whatsapp,
+        document: clients.document,
+        email: clients.email,
+        address: clients.address,
+        zipCode: clients.zipCode,
+        city: clients.city,
+        state: clients.state,
+        userId: clients.userId,
+        createdAt: clients.createdAt,
+        updatedAt: clients.updatedAt,
+      },
+    }).from(installmentSales)
+      .leftJoin(clients, eq(installmentSales.clientId, clients.id))
+      .where(eq(installmentSales.userId, userId))
+      .orderBy(desc(installmentSales.createdAt));
+
+    return sales;
+  }
+
+  async getInstallmentSale(id: number, userId: number): Promise<InstallmentSale | undefined> {
+    const [sale] = await db.select()
+      .from(installmentSales)
+      .where(and(eq(installmentSales.id, id), eq(installmentSales.userId, userId)));
+    return sale;
+  }
+
+  async getInstallmentSaleByToken(token: string): Promise<(InstallmentSale & { client: Client, user: User }) | undefined> {
+    const [sale] = await db.select({
+      id: installmentSales.id,
+      userId: installmentSales.userId,
+      clientId: installmentSales.clientId,
+      description: installmentSales.description,
+      totalAmount: installmentSales.totalAmount,
+      installmentCount: installmentSales.installmentCount,
+      installmentValue: installmentSales.installmentValue,
+      firstDueDate: installmentSales.firstDueDate,
+      confirmationToken: installmentSales.confirmationToken,
+      status: installmentSales.status,
+      documentPhotoUrl: installmentSales.documentPhotoUrl,
+      clientSignedAt: installmentSales.clientSignedAt,
+      userReviewedAt: installmentSales.userReviewedAt,
+      userApprovedAt: installmentSales.userApprovedAt,
+      notes: installmentSales.notes,
+      createdAt: installmentSales.createdAt,
+      updatedAt: installmentSales.updatedAt,
+      client: {
+        id: clients.id,
+        name: clients.name,
+        whatsapp: clients.whatsapp,
+        document: clients.document,
+        email: clients.email,
+        address: clients.address,
+        zipCode: clients.zipCode,
+        city: clients.city,
+        state: clients.state,
+        userId: clients.userId,
+        createdAt: clients.createdAt,
+        updatedAt: clients.updatedAt,
+      },
+      user: {
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        isAdmin: users.isAdmin,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      },
+    }).from(installmentSales)
+      .leftJoin(clients, eq(installmentSales.clientId, clients.id))
+      .leftJoin(users, eq(installmentSales.userId, users.id))
+      .where(eq(installmentSales.confirmationToken, token));
+
+    return sale;
+  }
+
+  generateConfirmationToken(): string {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
+
+  async createInstallmentSale(sale: InsertInstallmentSale, userId: number): Promise<InstallmentSale> {
+    const token = this.generateConfirmationToken();
+    
+    const [created] = await db.insert(installmentSales)
+      .values({
+        ...sale,
+        userId,
+        confirmationToken: token,
+      })
+      .returning();
+
+    return created;
+  }
+
+  async updateInstallmentSale(id: number, sale: Partial<InstallmentSale>, userId: number): Promise<InstallmentSale> {
+    const [updated] = await db.update(installmentSales)
+      .set({ ...sale, updatedAt: new Date() })
+      .where(and(eq(installmentSales.id, id), eq(installmentSales.userId, userId)))
+      .returning();
+
+    return updated;
+  }
+
+  async updateInstallmentSaleByToken(token: string, updates: Partial<InstallmentSale>): Promise<InstallmentSale> {
+    const [updated] = await db.update(installmentSales)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(installmentSales.confirmationToken, token))
+      .returning();
+
+    return updated;
+  }
+
+  async deleteInstallmentSale(id: number, userId: number): Promise<void> {
+    await db.delete(installmentSales)
+      .where(and(eq(installmentSales.id, id), eq(installmentSales.userId, userId)));
   }
 }
 
