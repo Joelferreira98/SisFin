@@ -107,7 +107,8 @@ export function setupAuth(app: Express) {
           username: user.username, 
           email: user.email,
           firstName: user.firstName,
-          lastName: user.lastName
+          lastName: user.lastName,
+          isAdmin: user.isAdmin
         });
       });
     } catch (error) {
@@ -123,7 +124,8 @@ export function setupAuth(app: Express) {
       username: user.username,
       email: user.email,
       firstName: user.firstName,
-      lastName: user.lastName
+      lastName: user.lastName,
+      isAdmin: user.isAdmin
     });
   });
 
@@ -150,7 +152,8 @@ export function setupAuth(app: Express) {
       username: user.username,
       email: user.email,
       firstName: user.firstName,
-      lastName: user.lastName
+      lastName: user.lastName,
+      isAdmin: user.isAdmin
     });
   });
 }

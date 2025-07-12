@@ -21,7 +21,7 @@ import {
 
 export default function Admin() {
   const { toast } = useToast();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, isAdmin } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -35,7 +35,19 @@ export default function Admin() {
       }, 500);
       return;
     }
-  }, [isAuthenticated, isLoading, toast]);
+    
+    if (!isLoading && isAuthenticated && !isAdmin) {
+      toast({
+        title: "Acesso negado",
+        description: "Você não tem permissão para acessar o painel administrativo",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
+      return;
+    }
+  }, [isAuthenticated, isLoading, isAdmin, toast]);
 
   if (isLoading) {
     return (
