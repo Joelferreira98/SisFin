@@ -132,6 +132,35 @@ export default function WhatsAppInstanceManager() {
     },
   });
 
+  // Mutation para regenerar QR code
+  const regenerateQRMutation = useMutation({
+    mutationFn: async (instanceId: number) => {
+      const res = await apiRequest('POST', `/api/whatsapp/instances/${instanceId}/regenerate-qr`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/whatsapp/instances'] });
+      
+      // Show the new QR code
+      if (data.qrCodeData) {
+        setQrCodeData(data.qrCodeData);
+        setIsCreateModalOpen(true);
+      }
+      
+      toast({
+        title: "QR Code regenerado!",
+        description: "Novo QR Code gerado com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao regenerar QR Code",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateInstance = () => {
     if (!newInstance.instanceName || !newInstance.displayName) {
       toast({
@@ -338,6 +367,15 @@ export default function WhatsAppInstanceManager() {
                           disabled={checkStatusMutation.isPending}
                         >
                           <RefreshCw className={`w-4 h-4 ${checkStatusMutation.isPending ? 'animate-spin' : ''}`} />
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => regenerateQRMutation.mutate(instance.id)}
+                          disabled={regenerateQRMutation.isPending}
+                        >
+                          <QrCode className={`w-4 h-4 ${regenerateQRMutation.isPending ? 'animate-spin' : ''}`} />
                         </Button>
                         
                         <Button

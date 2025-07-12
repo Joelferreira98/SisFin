@@ -301,6 +301,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/whatsapp/instances/:id/regenerate-qr', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const instanceId = parseInt(req.params.id);
+      
+      // Get instance from database
+      const instances = await storage.getUserWhatsappInstances(userId);
+      const instance = instances.find(i => i.id === instanceId);
+      
+      if (!instance) {
+        return res.status(404).json({ message: 'Instância não encontrada' });
+      }
+
+      // Regenerate QR code from Evolution API
+      const whatsappService = getWhatsAppService();
+      if (!whatsappService) {
+        return res.status(500).json({ message: 'Serviço WhatsApp não configurado' });
+      }
+      
+      const evolutionResult = await whatsappService.regenerateQRCode(instance.instanceName);
+      
+      if (!evolutionResult.success) {
+        return res.status(500).json({ 
+          message: `Erro ao regenerar QR code: ${evolutionResult.error}` 
+        });
+      }
+      
+      // Update instance in database with new QR code
+      const updatedInstance = await storage.updateUserWhatsappInstance(instanceId, {
+        qrCode: evolutionResult.data?.qrcode?.code || evolutionResult.data?.qr,
+        status: 'connecting'
+      }, userId);
+      
+      res.json({
+        ...updatedInstance,
+        qrCodeData: evolutionResult.data?.qrcode || evolutionResult.data
+      });
+    } catch (error) {
+      console.error('Error regenerating QR code:', error);
+      res.status(500).json({ message: 'Erro ao regenerar QR code' });
+    }
+  });
+
   app.delete('/api/whatsapp/instances/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;

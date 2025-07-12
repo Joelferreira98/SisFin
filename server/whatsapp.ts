@@ -208,6 +208,7 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
       }
 
       const data = await response.json();
+      console.log('Evolution API create response:', JSON.stringify(data, null, 2));
       return { success: true, data };
     } catch (error) {
       console.error('Error creating Evolution instance:', error);
@@ -234,6 +235,30 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
       return { success: true, data };
     } catch (error) {
       console.error('Error getting instance status:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async regenerateQRCode(instanceName: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await fetch(`${this.config.apiUrl}/instance/connect/${instanceName}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.config.apiKey
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('QR Code regeneration response:', JSON.stringify(data, null, 2));
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error regenerating QR code:', error);
       return { success: false, error: error.message };
     }
   }
