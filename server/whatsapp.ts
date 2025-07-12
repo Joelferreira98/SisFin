@@ -16,9 +16,22 @@ export class WhatsAppService {
 
   async sendTextMessage(phoneNumber: string, message: string, instanceName?: string): Promise<boolean> {
     try {
-      // Formatar o número do WhatsApp (remover caracteres especiais)
-      const formattedNumber = phoneNumber.replace(/\D/g, '');
+      // Formatar o número do WhatsApp (remover caracteres especiais e garantir formato correto)
+      let formattedNumber = phoneNumber.replace(/\D/g, '');
+      
+      // Se o número não tem código do país, adicionar 55 (Brasil)
+      if (formattedNumber.length === 11 && formattedNumber.startsWith('9')) {
+        formattedNumber = '55' + formattedNumber;
+      }
+      
       const instance = instanceName || this.config.instanceName;
+      
+      if (!instance) {
+        console.error('No WhatsApp instance available for sending message');
+        return false;
+      }
+      
+      console.log(`Sending message to ${formattedNumber} using instance: ${instance}`);
       
       const response = await fetch(`${this.config.apiUrl}/message/sendText/${instance}`, {
         method: 'POST',
@@ -68,8 +81,11 @@ Para mais informações, entre em contato conosco.
 
 _Mensagem automática - Sistema de Gestão Financeira_`;
 
-    // Get user's active WhatsApp instance
+    // Get user's active WhatsApp instance or use admin instance as fallback
     const userInstance = await this.getUserActiveInstance(userId);
+    if (!userInstance) {
+      console.log(`No user instance found for user ${userId}, using admin instance as fallback`);
+    }
     const success = await this.sendTextMessage(phoneNumber, message, userInstance);
 
     // Salvar no banco de dados
@@ -110,8 +126,11 @@ Por favor, entre em contato para regularizar a situação.
 
 _Mensagem automática - Sistema de Gestão Financeira_`;
 
-    // Get user's active WhatsApp instance
+    // Get user's active WhatsApp instance or use admin instance as fallback
     const userInstance = await this.getUserActiveInstance(userId);
+    if (!userInstance) {
+      console.log(`No user instance found for user ${userId}, using admin instance as fallback`);
+    }
     const success = await this.sendTextMessage(phoneNumber, message, userInstance);
 
     // Salvar no banco de dados
@@ -153,8 +172,11 @@ No link, você poderá enviar a foto do documento como assinatura digital.
 
 _Mensagem automática - Sistema de Gestão Financeira_`;
 
-    // Get user's active WhatsApp instance
+    // Get user's active WhatsApp instance or use admin instance as fallback
     const userInstance = await this.getUserActiveInstance(userId);
+    if (!userInstance) {
+      console.log(`No user instance found for user ${userId}, using admin instance as fallback`);
+    }
     const success = await this.sendTextMessage(phoneNumber, message, userInstance);
 
     // Salvar no banco de dados
@@ -180,6 +202,11 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
       const activeInstance = instances.find(instance => 
         instance.status === 'connected' && instance.isActive
       );
+      
+      if (!activeInstance) {
+        console.log(`No active WhatsApp instance found for user ${userId}. Available instances:`, instances);
+      }
+      
       return activeInstance?.instanceName;
     } catch (error) {
       console.error('Error getting user active instance:', error);
