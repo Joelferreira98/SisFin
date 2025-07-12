@@ -69,7 +69,7 @@ export default function ClientModal({ isOpen, onClose, client }: ClientModalProp
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/auth";
         }, 500);
         return;
       }
@@ -102,7 +102,7 @@ export default function ClientModal({ isOpen, onClose, client }: ClientModalProp
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/auth";
         }, 500);
         return;
       }
