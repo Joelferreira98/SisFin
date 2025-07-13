@@ -2,6 +2,18 @@
 
 Sistema completo de gestão financeira para pequenas e médias empresas com integração WhatsApp, controle de clientes, contas a receber/pagar, vendas parceladas e muito mais.
 
+## 📋 Índice
+
+- [Recursos Principais](#-recursos-principais)
+- [Tecnologias](#️-tecnologias)
+- [Instalação](#-instalação)
+- [Instalação em VPS](#️-instalação-em-vps)
+- [Solução de Problemas](#-solução-urgente-vps---database_url)
+- [Uso](#-uso)
+- [API](#-api)
+- [Contribuição](#-contribuição)
+- [Licença](#-licença)
+
 ## 🚀 Recursos Principais
 
 ### 💰 Gestão Financeira
@@ -139,6 +151,346 @@ npm run build
 ```
 
 📋 **Documentação completa:** [VPS_FIX_URGENTE.md](VPS_FIX_URGENTE.md)
+
+## 🖥️ Instalação em VPS
+
+### Requisitos do Sistema
+- **Sistema**: Ubuntu 20.04+ / CentOS 7+ / Debian 10+
+- **Node.js**: Versão 20+
+- **PostgreSQL**: Versão 15+
+- **RAM**: Mínimo 1GB
+- **Espaço**: 2GB livres
+
+### Instalação Automática (Recomendada)
+
+```bash
+# Baixar script de instalação
+wget https://raw.githubusercontent.com/Joelferreira98/SisFin/main/install-vps.sh
+chmod +x install-vps.sh
+
+# Executar instalação completa
+./install-vps.sh
+```
+
+**O script instalará automaticamente:**
+- Node.js 20
+- PostgreSQL 15
+- SisFin e dependências
+- PM2 para gerenciamento
+- Configuração do firewall
+- Configuração do banco de dados
+
+### Instalação Manual
+
+#### 1. Preparar o Sistema
+```bash
+# Ubuntu/Debian
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl wget git build-essential
+
+# CentOS/RHEL
+sudo yum update -y
+sudo yum install -y curl wget git gcc gcc-c++ make
+```
+
+#### 2. Instalar Node.js 20
+```bash
+# Instalar Node.js 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Verificar versão
+node --version
+npm --version
+```
+
+#### 3. Instalar PostgreSQL
+```bash
+# Ubuntu/Debian
+sudo apt install -y postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+# Configurar usuário
+sudo -u postgres psql
+CREATE USER sisfin WITH PASSWORD 'sua_senha_aqui';
+CREATE DATABASE sisfin OWNER sisfin;
+GRANT ALL PRIVILEGES ON DATABASE sisfin TO sisfin;
+\q
+```
+
+#### 4. Baixar e Configurar SisFin
+```bash
+# Clonar repositório
+git clone https://github.com/Joelferreira98/SisFin.git
+cd SisFin
+
+# Instalar dependências
+npm install
+
+# Configurar banco de dados
+./vps-database-fix.sh
+# Quando solicitado, insira: postgresql://sisfin:sua_senha_aqui@localhost:5432/sisfin
+
+# Fazer build
+npm run build
+
+# Iniciar aplicação
+./start-vps.sh
+```
+
+#### 5. Configurar Firewall
+```bash
+# Permitir porta da aplicação
+sudo ufw allow 5000/tcp
+
+# Ou para porta personalizada
+sudo ufw allow 8080/tcp
+```
+
+#### 6. Configurar SSL (Opcional)
+```bash
+# Instalar Certbot
+sudo apt install -y certbot
+
+# Gerar certificado (substitua seu-dominio.com)
+sudo certbot certonly --standalone -d seu-dominio.com
+
+# Configurar HTTPS no sistema
+./setup-ssl.sh
+```
+
+### Configuração com PM2 (Recomendado)
+
+```bash
+# Instalar PM2 globalmente
+sudo npm install -g pm2
+
+# Iniciar com PM2
+pm2 start ecosystem.config.js
+
+# Configurar inicialização automática
+pm2 startup
+pm2 save
+```
+
+### Configuração com Nginx (Proxy Reverso)
+
+```bash
+# Instalar Nginx
+sudo apt install -y nginx
+
+# Criar configuração
+sudo nano /etc/nginx/sites-available/sisfin
+
+# Conteúdo da configuração:
+server {
+    listen 80;
+    server_name seu-dominio.com;
+    
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+# Ativar configuração
+sudo ln -s /etc/nginx/sites-available/sisfin /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+### Comandos Úteis VPS
+
+```bash
+# Verificar status
+./status.sh
+
+# Testar configuração
+node test-env.js
+
+# Reiniciar aplicação
+pm2 restart sisfin
+
+# Ver logs
+pm2 logs sisfin
+
+# Atualizar sistema
+git pull origin main
+npm install
+npm run build
+pm2 restart sisfin
+```
+
+### Solução de Problemas VPS
+
+1. **Erro DATABASE_URL**: `./vps-database-fix.sh`
+2. **Porta ocupada**: Altere PORT no .env
+3. **Permissões**: `sudo chown -R $USER:$USER /path/to/SisFin`
+4. **Firewall**: `sudo ufw status` e configurar portas
+5. **SSL**: Verificar certificados com `sudo certbot certificates`
+
+### Monitoramento
+
+```bash
+# Status do sistema
+htop
+
+# Logs da aplicação
+tail -f logs/app.log
+
+# Status do PostgreSQL
+sudo systemctl status postgresql
+
+# Status do Nginx
+sudo systemctl status nginx
+```
+
+### Backup e Manutenção
+
+#### Backup Automático
+```bash
+# Criar script de backup
+cat > backup-sisfin.sh << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/var/backups/sisfin"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+# Criar diretório de backup
+mkdir -p $BACKUP_DIR
+
+# Backup do banco de dados
+sudo -u postgres pg_dump sisfin > $BACKUP_DIR/database_$DATE.sql
+
+# Backup dos arquivos
+tar -czf $BACKUP_DIR/files_$DATE.tar.gz /home/user/SisFin --exclude=node_modules --exclude=dist
+
+# Manter apenas 7 dias de backup
+find $BACKUP_DIR -type f -mtime +7 -delete
+
+echo "Backup concluído: $DATE"
+EOF
+
+chmod +x backup-sisfin.sh
+
+# Configurar cron para backup diário
+echo "0 2 * * * /path/to/backup-sisfin.sh" | sudo crontab -
+```
+
+#### Atualização do Sistema
+```bash
+# Script de atualização
+cat > update-sisfin.sh << 'EOF'
+#!/bin/bash
+cd /home/user/SisFin
+
+# Backup antes da atualização
+./backup-sisfin.sh
+
+# Atualizar código
+git pull origin main
+
+# Instalar dependências
+npm install
+
+# Fazer build
+npm run build
+
+# Reiniciar aplicação
+pm2 restart sisfin
+
+echo "Sistema atualizado com sucesso!"
+EOF
+
+chmod +x update-sisfin.sh
+```
+
+#### Monitoramento com Scripts
+```bash
+# Script de monitoramento
+cat > monitor-sisfin.sh << 'EOF'
+#!/bin/bash
+echo "=== Status do SisFin ==="
+echo "Data: $(date)"
+echo ""
+
+# Status PM2
+echo "Status PM2:"
+pm2 status
+
+# Status PostgreSQL
+echo "Status PostgreSQL:"
+sudo systemctl status postgresql --no-pager
+
+# Status Nginx
+echo "Status Nginx:"
+sudo systemctl status nginx --no-pager
+
+# Uso de recursos
+echo "Uso de recursos:"
+echo "CPU: $(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1)%"
+echo "RAM: $(free -h | grep Mem | awk '{print $3"/"$2}')"
+echo "Disco: $(df -h / | awk 'NR==2{print $3"/"$2" ("$5")"}')"
+
+# Conexões do banco
+echo "Conexões PostgreSQL:"
+sudo -u postgres psql -c "SELECT count(*) FROM pg_stat_activity;"
+
+echo ""
+echo "=== Logs Recentes ==="
+pm2 logs sisfin --lines 10
+EOF
+
+chmod +x monitor-sisfin.sh
+```
+
+## 🔧 Configuração Avançada
+
+### SSL com Let's Encrypt
+```bash
+# Instalar Certbot
+sudo apt install -y certbot python3-certbot-nginx
+
+# Obter certificado
+sudo certbot --nginx -d seu-dominio.com
+
+# Renovação automática
+echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
+```
+
+### Configuração de Domínio
+```bash
+# Configurar DNS
+# A Record: seu-dominio.com -> IP_DO_SERVIDOR
+# CNAME: www.seu-dominio.com -> seu-dominio.com
+
+# Atualizar configuração Nginx
+sudo nano /etc/nginx/sites-available/sisfin
+
+# Reiniciar Nginx
+sudo systemctl restart nginx
+```
+
+### Otimização de Performance
+```bash
+# Configurar limites do sistema
+echo "* soft nofile 65536" | sudo tee -a /etc/security/limits.conf
+echo "* hard nofile 65536" | sudo tee -a /etc/security/limits.conf
+
+# Otimizar PostgreSQL
+sudo nano /etc/postgresql/15/main/postgresql.conf
+# Ajustar: shared_buffers, effective_cache_size, work_mem
+
+# Reiniciar PostgreSQL
+sudo systemctl restart postgresql
+```
 
 ```
 

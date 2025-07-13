@@ -624,6 +624,44 @@ The system now provides a clean, automated configuration experience with automat
 
 The VPS DATABASE_URL fix ensures reliable deployment across all environments with comprehensive error handling and automated problem resolution.
 
+## Latest Updates (July 13, 2025 - Complete VPS Documentation)
+
+### Complete VPS Installation Guide
+- **README.md Enhancement**: Added comprehensive VPS installation section with step-by-step instructions
+- **Automated Installation**: Created install-vps.sh script for one-command VPS deployment
+- **Manual Installation**: Detailed manual installation guide for advanced users
+- **System Requirements**: Clear requirements and compatibility information
+
+### VPS Installation Features
+- **Automatic Setup**: install-vps.sh handles complete installation process
+- **Multi-OS Support**: Ubuntu, Debian, CentOS compatibility
+- **Database Configuration**: Automated PostgreSQL setup and configuration
+- **Security Setup**: Firewall configuration and SSL support
+- **Process Management**: PM2 integration for production deployment
+
+### Technical Implementation
+- **Script Creation**: Complete install-vps.sh with error handling and validation
+- **Documentation Structure**: Clear installation methods (automatic vs manual)
+- **Nginx Configuration**: Reverse proxy setup with SSL support
+- **Backup System**: Automated backup and maintenance scripts
+- **Monitoring Tools**: System monitoring and health check scripts
+
+### User Experience Improvements
+- **One-Command Installation**: Simple ./install-vps.sh for complete setup
+- **Clear Instructions**: Step-by-step guides for different scenarios
+- **Backup and Maintenance**: Automated backup and update procedures
+- **Performance Optimization**: System tuning and monitoring tools
+- **SSL Configuration**: Let's Encrypt integration for secure connections
+
+### Advanced Features
+- **Domain Configuration**: DNS setup and domain mapping
+- **Performance Tuning**: PostgreSQL and system optimization
+- **Monitoring Scripts**: Resource monitoring and log management
+- **Update Automation**: Automated system update procedures
+- **Security Hardening**: Firewall and SSL configuration
+
+The VPS installation documentation is now comprehensive with both automated and manual installation options, complete maintenance procedures, and advanced configuration features.
+
 ## Latest Updates (July 13, 2025 - Complete Documentation Migration to PostgreSQL)
 
 ### Complete Documentation Overhaul
