@@ -819,6 +819,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Payment Reminders endpoints
+  app.get("/api/payment-reminders", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const reminders = await storage.getPaymentReminders(userId);
+      res.json(reminders);
+    } catch (error) {
+      console.error("Error fetching payment reminders:", error);
+      res.status(500).json({ message: "Failed to fetch payment reminders" });
+    }
+  });
+
+  app.get("/api/payment-reminders/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const reminderId = parseInt(req.params.id);
+      const reminder = await storage.getPaymentReminder(reminderId, userId);
+      if (!reminder) {
+        return res.status(404).json({ message: "Payment reminder not found" });
+      }
+      res.json(reminder);
+    } catch (error) {
+      console.error("Error fetching payment reminder:", error);
+      res.status(500).json({ message: "Failed to fetch payment reminder" });
+    }
+  });
+
+  app.post("/api/payment-reminders", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const reminder = await storage.createPaymentReminder(req.body, userId);
+      res.status(201).json(reminder);
+    } catch (error) {
+      console.error("Error creating payment reminder:", error);
+      res.status(500).json({ message: "Failed to create payment reminder" });
+    }
+  });
+
+  app.put("/api/payment-reminders/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const reminderId = parseInt(req.params.id);
+      const reminder = await storage.updatePaymentReminder(reminderId, req.body, userId);
+      res.json(reminder);
+    } catch (error) {
+      console.error("Error updating payment reminder:", error);
+      res.status(500).json({ message: "Failed to update payment reminder" });
+    }
+  });
+
+  app.delete("/api/payment-reminders/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const reminderId = parseInt(req.params.id);
+      await storage.deletePaymentReminder(reminderId, userId);
+      res.json({ message: "Payment reminder deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting payment reminder:", error);
+      res.status(500).json({ message: "Failed to delete payment reminder" });
+    }
+  });
+
+  // Reminder Logs endpoints
+  app.get("/api/reminder-logs", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const logs = await storage.getReminderLogs(userId);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching reminder logs:", error);
+      res.status(500).json({ message: "Failed to fetch reminder logs" });
+    }
+  });
+
   // Plan routes
   app.get("/api/plans", isAuthenticated, async (req: any, res) => {
     try {

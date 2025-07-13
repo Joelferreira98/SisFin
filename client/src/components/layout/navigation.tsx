@@ -8,7 +8,8 @@ import {
   BarChart3, 
   MessageSquare,
   Settings,
-  CreditCard
+  CreditCard,
+  Bell
 } from "lucide-react";
 
 export default function Navigation() {
@@ -20,6 +21,7 @@ export default function Navigation() {
     { name: "Contas a Receber", path: "/receivables", icon: TrendingDown },
     { name: "Contas a Pagar", path: "/payables", icon: TrendingUp },
     { name: "Confirmações", path: "/confirmations", icon: CreditCard },
+    { name: "Lembretes", path: "/payment-reminders", icon: Bell },
     { name: "Relatórios", path: "/reports", icon: BarChart3 },
     { name: "WhatsApp", path: "/whatsapp", icon: MessageSquare },
     { name: "Admin", path: "/admin", icon: Settings },

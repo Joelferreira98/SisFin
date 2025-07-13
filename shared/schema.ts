@@ -279,6 +279,44 @@ export const systemSettings = pgTable("system_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Payment Reminders table
+export const paymentReminders = pgTable("payment_reminders", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  messageTemplate: text("message_template").notNull(),
+  triggerType: varchar("trigger_type", { length: 50 }).notNull(), // 'on_due', 'before_due', 'after_due'
+  triggerDays: integer("trigger_days").default(0), // days before/after due date
+  triggerTime: varchar("trigger_time", { length: 8 }).notNull(), // HH:MM:SS format
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Reminder Logs table
+export const reminderLogs = pgTable("reminder_logs", {
+  id: serial("id").primaryKey(),
+  reminderId: integer("reminder_id").references(() => paymentReminders.id).notNull(),
+  receivableId: integer("receivable_id").references(() => receivables.id).notNull(),
+  clientId: integer("client_id").references(() => clients.id).notNull(),
+  messageContent: text("message_content").notNull(),
+  status: varchar("status", { length: 50 }).notNull(), // 'sent', 'failed', 'pending'
+  errorMessage: text("error_message"),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const paymentRemindersRelations = relations(paymentReminders, ({ one, many }) => ({
+  user: one(users, { fields: [paymentReminders.userId], references: [users.id] }),
+  reminderLogs: many(reminderLogs),
+}));
+
+export const reminderLogsRelations = relations(reminderLogs, ({ one }) => ({
+  reminder: one(paymentReminders, { fields: [reminderLogs.reminderId], references: [paymentReminders.id] }),
+  receivable: one(receivables, { fields: [reminderLogs.receivableId], references: [receivables.id] }),
+  client: one(clients, { fields: [reminderLogs.clientId], references: [clients.id] }),
+}));
+
 export const insertPlanSchema = createInsertSchema(plans).omit({
   id: true,
   createdAt: true,
@@ -317,6 +355,20 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit
   updatedAt: true,
 });
 
+export const insertPaymentReminderSchema = createInsertSchema(paymentReminders).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  triggerTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato deve ser HH:MM"),
+});
+
+export const insertReminderLogSchema = createInsertSchema(reminderLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type Plan = typeof plans.$inferSelect;
 export type InsertPlan = z.infer<typeof insertPlanSchema>;
 export type UserSubscription = typeof userSubscriptions.$inferSelect;
@@ -327,3 +379,7 @@ export type UserWhatsappInstance = typeof userWhatsappInstances.$inferSelect;
 export type InsertUserWhatsappInstance = z.infer<typeof insertUserWhatsappInstanceSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
+export type PaymentReminder = typeof paymentReminders.$inferSelect;
+export type InsertPaymentReminder = z.infer<typeof insertPaymentReminderSchema>;
+export type ReminderLog = typeof reminderLogs.$inferSelect;
+export type InsertReminderLog = z.infer<typeof insertReminderLogSchema>;

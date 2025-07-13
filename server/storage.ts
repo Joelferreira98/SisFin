@@ -9,6 +9,8 @@ import {
   installmentSales,
   userWhatsappInstances,
   systemSettings,
+  paymentReminders,
+  reminderLogs,
   type User,
   type InsertUser,
   type Client,
@@ -29,6 +31,10 @@ import {
   type InsertUserWhatsappInstance,
   type SystemSetting,
   type InsertSystemSetting,
+  type PaymentReminder,
+  type InsertPaymentReminder,
+  type ReminderLog,
+  type InsertReminderLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, or } from "drizzle-orm";
@@ -124,6 +130,18 @@ export interface IStorage {
   deleteInstallmentSale(id: number, userId: number): Promise<void>;
   generateConfirmationToken(): string;
   createReceivablesFromInstallmentSale(saleId: number, userId: number): Promise<void>;
+
+  // Payment Reminders operations
+  getPaymentReminders(userId: number): Promise<PaymentReminder[]>;
+  getPaymentReminder(id: number, userId: number): Promise<PaymentReminder | undefined>;
+  createPaymentReminder(reminder: InsertPaymentReminder, userId: number): Promise<PaymentReminder>;
+  updatePaymentReminder(id: number, reminder: Partial<InsertPaymentReminder>, userId: number): Promise<PaymentReminder>;
+  deletePaymentReminder(id: number, userId: number): Promise<void>;
+  getActivePaymentReminders(userId: number): Promise<PaymentReminder[]>;
+
+  // Reminder Logs operations
+  getReminderLogs(userId: number): Promise<(ReminderLog & { reminder: PaymentReminder, receivable: Receivable, client: Client })[]>;
+  createReminderLog(log: InsertReminderLog): Promise<ReminderLog>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -837,6 +855,73 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSystemSetting(key: string): Promise<void> {
     await db.delete(systemSettings).where(eq(systemSettings.key, key));
+  }
+
+  // Payment Reminders operations
+  async getPaymentReminders(userId: number): Promise<PaymentReminder[]> {
+    return await db.select().from(paymentReminders).where(eq(paymentReminders.userId, userId)).orderBy(paymentReminders.name);
+  }
+
+  async getPaymentReminder(id: number, userId: number): Promise<PaymentReminder | undefined> {
+    const [reminder] = await db.select().from(paymentReminders).where(and(eq(paymentReminders.id, id), eq(paymentReminders.userId, userId)));
+    return reminder;
+  }
+
+  async createPaymentReminder(reminder: InsertPaymentReminder, userId: number): Promise<PaymentReminder> {
+    const [newReminder] = await db
+      .insert(paymentReminders)
+      .values({
+        ...reminder,
+        userId: userId,
+      })
+      .returning();
+    return newReminder;
+  }
+
+  async updatePaymentReminder(id: number, reminder: Partial<InsertPaymentReminder>, userId: number): Promise<PaymentReminder> {
+    const [updatedReminder] = await db
+      .update(paymentReminders)
+      .set({
+        ...reminder,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(paymentReminders.id, id), eq(paymentReminders.userId, userId)))
+      .returning();
+    
+    if (!updatedReminder) {
+      throw new Error('Payment reminder not found');
+    }
+    
+    return updatedReminder;
+  }
+
+  async deletePaymentReminder(id: number, userId: number): Promise<void> {
+    await db.delete(paymentReminders).where(and(eq(paymentReminders.id, id), eq(paymentReminders.userId, userId)));
+  }
+
+  async getActivePaymentReminders(userId: number): Promise<PaymentReminder[]> {
+    return await db.select().from(paymentReminders).where(and(eq(paymentReminders.userId, userId), eq(paymentReminders.isActive, true)));
+  }
+
+  // Reminder Logs operations
+  async getReminderLogs(userId: number): Promise<(ReminderLog & { reminder: PaymentReminder, receivable: Receivable, client: Client })[]> {
+    return await db.query.reminderLogs.findMany({
+      where: eq(paymentReminders.userId, userId),
+      with: {
+        reminder: true,
+        receivable: true,
+        client: true,
+      },
+      orderBy: [desc(reminderLogs.createdAt)],
+    });
+  }
+
+  async createReminderLog(log: InsertReminderLog): Promise<ReminderLog> {
+    const [newLog] = await db
+      .insert(reminderLogs)
+      .values(log)
+      .returning();
+    return newLog;
   }
 }
 
