@@ -170,8 +170,9 @@ if ! command -v pm2 >/dev/null 2>&1; then
     sudo npm install -g pm2
 fi
 
-# Criar arquivo de configuração do PM2
+# Criar arquivo de configuração do PM2 (CommonJS para compatibilidade)
 cat > ecosystem.config.js << EOF
+// Configuração do PM2 - usa CommonJS por compatibilidade
 module.exports = {
   apps: [{
     name: 'sisfin',
@@ -187,7 +188,9 @@ module.exports = {
     log_file: './logs/combined.log',
     time: true,
     autorestart: true,
-    max_memory_restart: '1G'
+    max_memory_restart: '1G',
+    max_restarts: 10,
+    min_uptime: '10s'
   }]
 };
 EOF
@@ -197,9 +200,25 @@ mkdir -p logs
 
 # Iniciar aplicação
 log "Iniciando aplicação..."
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup
+if pm2 start ecosystem.config.js; then
+    pm2 save
+    pm2 startup
+    success "Aplicação iniciada com PM2"
+else
+    error "Falha ao iniciar com PM2, tentando modo simples..."
+    log "Iniciando em modo simples..."
+    nohup node dist/index.js > logs/app.log 2>&1 &
+    APP_PID=$!
+    echo $APP_PID > app.pid
+    sleep 3
+    
+    if ps -p $APP_PID > /dev/null; then
+        success "Aplicação iniciada em modo simples (PID: $APP_PID)"
+    else
+        error "Falha ao iniciar aplicação"
+        exit 1
+    fi
+fi
 
 # Verificar status
 log "Verificando status da aplicação..."

@@ -7,6 +7,21 @@ Error: DATABASE_URL must be set. Did you forget to provision a database?
 
 ## Solução Rápida (1 comando)
 
+### Para correção completa do sistema:
+```bash
+wget -O fix-build-system.sh https://raw.githubusercontent.com/Joelferreira98/SisFin/main/fix-build-system.sh
+chmod +x fix-build-system.sh
+./fix-build-system.sh
+```
+
+### Para correção específica do PM2:
+```bash
+wget -O fix-pm2-config.sh https://raw.githubusercontent.com/Joelferreira98/SisFin/main/fix-pm2-config.sh
+chmod +x fix-pm2-config.sh
+./fix-pm2-config.sh
+```
+
+### Para correção do DATABASE_URL:
 ```bash
 wget -O fix-database-url-error.sh https://raw.githubusercontent.com/Joelferreira98/SisFin/main/fix-database-url-error.sh
 chmod +x fix-database-url-error.sh
