@@ -34,6 +34,7 @@ Ou especifique a porta diretamente:
 7. ✅ Testa a aplicação
 8. ✅ Cria script de inicialização com seleção de porta
 9. ✅ Corrige erros SSL do WhatsApp (Evolution API)
+10. ✅ Corrige incompatibilidade MySQL/PostgreSQL no schema (registro de usuários)
 
 ## 🎉 Resultado esperado:
 
