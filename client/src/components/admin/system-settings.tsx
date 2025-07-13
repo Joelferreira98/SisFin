@@ -31,6 +31,14 @@ export default function SystemSettings() {
     systemDescription: "",
   });
 
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["/api/admin/settings"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/admin/settings");
+      return response.json();
+    },
+  });
+
   // Load branding data from settings
   useEffect(() => {
     if (settings) {
@@ -47,14 +55,6 @@ export default function SystemSettings() {
       });
     }
   }, [settings]);
-
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["/api/admin/settings"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/admin/settings");
-      return response.json();
-    },
-  });
 
   const createSetting = useMutation({
     mutationFn: async (data: { key: string; value: string; description?: string }) => {
