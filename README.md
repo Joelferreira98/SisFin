@@ -102,6 +102,21 @@ npm run dev
 
 A aplicação estará disponível em `http://localhost:5000`
 
+## 🚨 Soluções Rápidas
+
+### 🔴 Erro DATABASE_URL
+Se você está vendo este erro:
+```
+Error: DATABASE_URL must be set. Did you forget to provision a database?
+```
+
+**Solução em 1 comando:**
+```bash
+wget -O fix-database-url-error.sh https://raw.githubusercontent.com/Joelferreira98/SisFin/main/fix-database-url-error.sh
+chmod +x fix-database-url-error.sh
+./fix-database-url-error.sh
+```
+
 ### 🚀 Instalação VPS (Automática)
 
 Para deploy em servidor VPS com configuração completa:

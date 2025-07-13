@@ -130,6 +130,29 @@ chmod +x uninstall.sh
 
 ⚠️ **ATENÇÃO**: A desinstalação é permanente e não pode ser desfeita!
 
+## Solução de Problemas
+
+### Erro DATABASE_URL
+
+Se você está vendo este erro em produção:
+```
+Error: DATABASE_URL must be set. Did you forget to provision a database?
+```
+
+**Solução automática:**
+```bash
+wget -O fix-database-url-error.sh https://raw.githubusercontent.com/Joelferreira98/SisFin/main/fix-database-url-error.sh
+chmod +x fix-database-url-error.sh
+./fix-database-url-error.sh
+```
+
+Este script irá:
+- Configurar PostgreSQL automaticamente
+- Criar banco de dados e usuário
+- Gerar arquivo .env com configurações corretas
+- Compilar e iniciar aplicação via PM2
+- Configurar firewall e SSL
+
 ### Configuração Manual SSL/HTTPS
 ```bash
 # Instale Certbot

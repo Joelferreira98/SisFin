@@ -773,3 +773,40 @@ The VPS installation system now provides complete domain and SSL configuration o
 - **Flexible Removal**: Users can choose exactly what to remove based on their needs
 
 The system now provides complete lifecycle management from installation to backup to uninstall, ensuring users have full control over their SisFin deployment with safety measures at every step.
+
+## Latest Updates (July 13, 2025 - DATABASE_URL Error Resolution)
+
+### Critical Production Error Fix
+- **Issue**: Users experiencing "DATABASE_URL must be set" error when running in production
+- **Root Cause**: Missing or misconfigured .env file in production environment
+- **Impact**: Application completely failing to start on VPS deployments
+- **Solution**: Created comprehensive fix script for immediate resolution
+
+### New Fix Script Created
+- **fix-database-url-error.sh**: Automated script to resolve DATABASE_URL configuration issues
+- **Complete Database Setup**: Automatically configures PostgreSQL database, user, and permissions
+- **Environment Configuration**: Generates proper .env file with all required variables
+- **Production Deployment**: Compiles application and configures PM2 for production
+- **One-Command Solution**: Single script execution resolves all database configuration issues
+
+### Technical Implementation
+- **PostgreSQL Configuration**: Creates database, user, and sets proper permissions
+- **Environment Variables**: Generates secure .env file with random SESSION_SECRET
+- **PM2 Integration**: Configures PM2 ecosystem for production deployment
+- **Database Migration**: Automatically runs db:push to initialize database schema
+- **Connection Testing**: Validates database connection before starting application
+
+### User Experience Improvements
+- **Immediate Solution**: Single command resolves production deployment issues
+- **Comprehensive Documentation**: Created DATABASE_URL_ERROR_SOLUTION.md with multiple resolution approaches
+- **Manual Alternative**: Provides step-by-step manual solution for users who prefer manual configuration
+- **Error Prevention**: Script includes validation and error handling throughout process
+- **Clear Instructions**: Updated README.md and INSTALL.md with prominent error resolution section
+
+### Documentation Updates
+- **README.md**: Added prominent "Soluções Rápidas" section with DATABASE_URL error fix
+- **INSTALL.md**: Added troubleshooting section with automated solution
+- **DATABASE_URL_ERROR_SOLUTION.md**: Comprehensive guide with both automated and manual solutions
+- **Error Context**: Provides clear explanation of when and why this error occurs
+
+The DATABASE_URL error fix ensures users can quickly resolve production deployment issues and get their SisFin application running successfully on VPS environments.
