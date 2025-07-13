@@ -75,6 +75,50 @@ cd SisFin
 npm install
 ```
 
+3. **Configure automaticamente**
+```bash
+./setup-auto.sh
+```
+
+4. **Inicie o sistema**
+```bash
+npm run dev
+```
+
+### 🔧 Comandos Úteis
+
+- **Configurar sistema**: `./setup-auto.sh`
+- **Desenvolvimento**: `npm run dev`
+- **Build**: `npm run build`
+- **Produção**: `./start-simple.sh`
+- **Testar configuração**: `node test-config.js`
+- **Status do sistema**: `./status.sh`
+
+### 📋 Configuração Automática
+
+O script `setup-auto.sh` realiza automaticamente:
+- Geração de chave de sessão segura
+- Criação do arquivo .env com configurações padrão
+- Configuração do dotenv no servidor
+- Configuração do PM2 para produção
+- Teste completo da configuração
+
+### 🔍 Verificação do Sistema
+
+Para verificar se tudo está funcionando:
+
+```bash
+./status.sh
+```
+
+Este comando mostra:
+- Status do servidor
+- Dependências instaladas
+- Configurações do banco de dados
+- Logs do sistema
+- Teste de configuração
+```
+
 3. **Configure o ambiente**
 ```bash
 cp .env.example .env
