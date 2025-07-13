@@ -112,6 +112,24 @@ chmod +x setup-ssl.sh
 - Configurar renovação automática
 - Testar a configuração
 
+### Desinstalação Completa
+
+Para remover completamente o SisFin:
+
+```bash
+wget https://raw.githubusercontent.com/Joelferreira98/SisFin/main/uninstall.sh
+chmod +x uninstall.sh
+./uninstall.sh
+```
+
+**Opções disponíveis:**
+1. **Desinstalação completa** - Remove aplicação, banco, configurações e SSL
+2. **Apenas aplicação** - Mantém PostgreSQL e remove só a aplicação
+3. **Apenas banco** - Remove só o banco de dados PostgreSQL
+4. **Apenas configurações** - Remove Nginx, SSL, mantém aplicação e banco
+
+⚠️ **ATENÇÃO**: A desinstalação é permanente e não pode ser desfeita!
+
 ### Configuração Manual SSL/HTTPS
 ```bash
 # Instale Certbot

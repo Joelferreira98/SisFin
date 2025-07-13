@@ -132,6 +132,42 @@ chmod +x setup-ssl.sh
 ./setup-ssl.sh
 ```
 
+### 🗑️ Desinstalação Completa
+
+Para remover completamente o SisFin do sistema:
+
+```bash
+# Script de desinstalação completa
+wget -O uninstall.sh https://raw.githubusercontent.com/Joelferreira98/SisFin/main/uninstall.sh
+chmod +x uninstall.sh
+./uninstall.sh
+```
+
+**Opções de desinstalação:**
+- 🔴 **Completa**: Remove tudo (aplicação, banco, configurações, SSL)
+- 🟡 **Apenas aplicação**: Mantém PostgreSQL instalado
+- 🟠 **Apenas banco**: Remove só o banco de dados
+- 🔵 **Apenas configurações**: Remove Nginx, SSL, mantém app e banco
+
+### 💾 Backup Completo
+
+Antes de desinstalar ou para manutenção, faça backup completo:
+
+```bash
+# Script de backup completo
+wget -O backup.sh https://raw.githubusercontent.com/Joelferreira98/SisFin/main/backup.sh
+chmod +x backup.sh
+./backup.sh
+```
+
+**O backup inclui:**
+- ✅ Código fonte da aplicação
+- ✅ Banco de dados completo
+- ✅ Configurações Nginx e SSL
+- ✅ Certificados SSL
+- ✅ Configurações PM2
+- ✅ Script de restauração automática
+
 ## 🔧 Configuração
 
 ### Variáveis de Ambiente

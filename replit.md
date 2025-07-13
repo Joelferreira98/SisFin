@@ -727,3 +727,49 @@ The SSL certificate issue has been completely resolved, allowing proper communic
 - **Flexible Options**: Support for IP-only, domain-only, or domain+SSL configurations
 
 The VPS installation system now provides complete domain and SSL configuration options, enabling users to deploy production-ready applications with HTTPS support in a single command execution.
+
+## Latest Updates (July 13, 2025 - Complete Backup and Uninstall System)
+
+### Comprehensive Uninstall System
+- **Complete Uninstall Script**: Created uninstall.sh with 4 different removal options
+- **Selective Removal**: Options to remove only application, database, configurations, or complete system
+- **Safety Confirmations**: Double confirmation system to prevent accidental removal
+- **Automatic Backup Suggestion**: Prompts user to create backup before uninstalling
+- **Component Detection**: Automatically detects and removes PM2, Nginx, SSL certificates, and system services
+
+### Advanced Backup System
+- **Complete Backup Script**: Created backup.sh for comprehensive system backup
+- **Multiple Backup Types**: Database (full, data-only, schema-only), application, configurations, SSL certificates
+- **Automatic Restore Script**: Generates restore.sh for easy system restoration
+- **System Information**: Includes system info, installed packages, firewall rules, and cron jobs
+- **Compressed Archive**: Creates compressed backup file for easy storage and transfer
+
+### Uninstall Options
+1. **Complete Removal**: Application, database, configurations, SSL certificates, system components
+2. **Application Only**: Removes SisFin but keeps PostgreSQL and system components
+3. **Database Only**: Removes PostgreSQL database but keeps application and configurations
+4. **Configurations Only**: Removes Nginx, SSL, firewall rules but keeps application and database
+
+### Backup Features
+- **Source Code**: Complete application backup excluding node_modules and temporary files
+- **Database**: Full PostgreSQL dump with separate data and schema backups
+- **Nginx Configuration**: Complete server block configuration backup
+- **SSL Certificates**: Full Let's Encrypt certificate backup
+- **PM2 Configuration**: Application process configuration and logs
+- **System Settings**: Environment variables, cron jobs, firewall rules, system information
+
+### Technical Implementation
+- **Safety First**: Backup suggestion integrated into uninstall process
+- **User Experience**: Clear prompts and confirmation messages throughout process
+- **Error Handling**: Robust error handling with graceful failures
+- **Documentation**: Complete documentation updates in README.md and INSTALL.md
+- **Download Integration**: Scripts can be downloaded directly from GitHub repository
+
+### User Experience Improvements
+- **Guided Process**: Step-by-step guidance for both backup and uninstall processes
+- **Clear Options**: Well-defined options for different removal scenarios
+- **Safety Measures**: Multiple confirmations and backup suggestions
+- **Recovery Path**: Complete backup and restore system for easy recovery
+- **Flexible Removal**: Users can choose exactly what to remove based on their needs
+
+The system now provides complete lifecycle management from installation to backup to uninstall, ensuring users have full control over their SisFin deployment with safety measures at every step.
