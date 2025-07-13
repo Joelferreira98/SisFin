@@ -7,11 +7,11 @@ echo "🚀 Instalação do SisFin em VPS"
 echo "=============================="
 
 # Verificar se está executando como root
-if [[ $EUID -eq 0 ]]; then
-   echo "❌ Este script não deve ser executado como root"
-   echo "💡 Execute como usuário normal: ./install-vps.sh"
-   exit 1
-fi
+#if [[ $EUID -eq 0 ]]; then
+#   echo "❌ Este script não deve ser executado como root"
+#   echo "💡 Execute como usuário normal: ./install-vps.sh"
+#   exit 1
+#fi
 
 # Detectar sistema operacional
 if [[ -f /etc/os-release ]]; then
