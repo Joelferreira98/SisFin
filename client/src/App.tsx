@@ -19,6 +19,7 @@ import PaymentReminders from "@/pages/payment-reminders";
 import Plans from "@/pages/plans";
 import NotFound from "@/pages/not-found";
 import { SystemHead } from "@/components/system-head";
+import { PWAInstaller } from "@/components/pwa-installer";
 
 function Router() {
   return (
@@ -48,6 +49,7 @@ function App() {
           <SystemHead />
           <Toaster />
           <Router />
+          <PWAInstaller />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

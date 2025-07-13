@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Edit, Plus, Settings, Globe, AlertCircle, Palette, Upload } from "lucide-react";
 import { SystemSetting } from "@shared/schema";
+import { LogoUploader } from "@/components/logo-uploader";
 
 export default function SystemSettings() {
   const { toast } = useToast();
@@ -286,28 +287,22 @@ export default function SystemSettings() {
                   />
                   <p className="text-sm text-gray-500 mt-1">Descrição da aplicação</p>
                 </div>
+              </div>
 
-                <div>
-                  <Label htmlFor="systemLogo">URL do Logo</Label>
-                  <Input
-                    id="systemLogo"
-                    value={brandingData.systemLogo}
-                    onChange={(e) => setBrandingData({ ...brandingData, systemLogo: e.target.value })}
-                    placeholder="https://exemplo.com/logo.png"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">URL do logo exibido no cabeçalho</p>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <LogoUploader
+                  label="Logo do Sistema"
+                  description="Logo exibido no cabeçalho da aplicação"
+                  currentValue={brandingData.systemLogo}
+                  onLogoChange={(logoUrl) => setBrandingData({ ...brandingData, systemLogo: logoUrl })}
+                />
 
-                <div>
-                  <Label htmlFor="systemFavicon">URL do Favicon</Label>
-                  <Input
-                    id="systemFavicon"
-                    value={brandingData.systemFavicon}
-                    onChange={(e) => setBrandingData({ ...brandingData, systemFavicon: e.target.value })}
-                    placeholder="https://exemplo.com/favicon.ico"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">URL do favicon da aplicação</p>
-                </div>
+                <LogoUploader
+                  label="Favicon"
+                  description="Ícone exibido na aba do navegador"
+                  currentValue={brandingData.systemFavicon}
+                  onLogoChange={(faviconUrl) => setBrandingData({ ...brandingData, systemFavicon: faviconUrl })}
+                />
               </div>
 
               <div className="flex justify-end">

@@ -972,6 +972,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PWA Manifest endpoint
+  app.get("/manifest.json", async (req, res) => {
+    try {
+      const settings = await storage.getAllSystemSettings();
+      const systemName = settings.find(s => s.key === 'system_name')?.value || 'FinanceManager';
+      const systemDescription = settings.find(s => s.key === 'system_description')?.value || 'Sistema de gestão financeira completo';
+      const systemLogo = settings.find(s => s.key === 'system_logo')?.value || '';
+      
+      const manifest = {
+        name: systemName,
+        short_name: systemName,
+        description: systemDescription,
+        start_url: "/",
+        display: "standalone",
+        background_color: "#ffffff",
+        theme_color: "#2563eb",
+        orientation: "portrait",
+        scope: "/",
+        icons: [
+          {
+            src: systemLogo || "/pwa-192x192.svg",
+            sizes: "192x192",
+            type: systemLogo ? "image/png" : "image/svg+xml",
+            purpose: "any maskable"
+          },
+          {
+            src: systemLogo || "/pwa-512x512.svg",
+            sizes: "512x512",
+            type: systemLogo ? "image/png" : "image/svg+xml",
+            purpose: "any maskable"
+          }
+        ]
+      };
+      
+      res.setHeader('Content-Type', 'application/manifest+json');
+      res.json(manifest);
+    } catch (error) {
+      console.error("Error generating manifest:", error);
+      res.status(500).json({ error: "Failed to generate manifest" });
+    }
+  });
+
   app.delete("/api/admin/settings/:key", isAdmin, async (req: any, res) => {
     try {
       const key = req.params.key;
