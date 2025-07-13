@@ -856,7 +856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Plan change request routes
   app.post("/api/plan-change-requests", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const requestData = req.body;
       
       // Get user's current plan
@@ -877,7 +877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/plan-change-requests", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const requests = await storage.getUserPlanChangeRequests(userId);
       res.json(requests);
     } catch (error) {
@@ -899,7 +899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/plan-change-requests/:id/approve", isAdmin, async (req: any, res) => {
     try {
       const requestId = parseInt(req.params.id);
-      const adminId = req.user.claims.sub;
+      const adminId = req.user.id;
       const { adminResponse } = req.body;
       
       await storage.approvePlanChangeRequest(requestId, adminId, adminResponse);
@@ -913,7 +913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/plan-change-requests/:id/reject", isAdmin, async (req: any, res) => {
     try {
       const requestId = parseInt(req.params.id);
-      const adminId = req.user.claims.sub;
+      const adminId = req.user.id;
       const { adminResponse } = req.body;
       
       await storage.rejectPlanChangeRequest(requestId, adminId, adminResponse);
