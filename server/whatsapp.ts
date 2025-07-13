@@ -196,6 +196,93 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
     return success;
   }
 
+  async sendSaleApprovalNotification(clientId: number, clientName: string, phoneNumber: string, description: string, totalAmount: number, installmentCount: number, userId: number): Promise<boolean> {
+    const formattedAmount = totalAmount.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
+
+    const message = `🎉 Parabéns ${clientName}! 
+
+Sua venda parcelada foi APROVADA! ✅
+
+📝 ${description}
+💰 Valor Total: ${formattedAmount}
+📊 Parcelas: ${installmentCount}x
+
+Suas parcelas foram criadas automaticamente no sistema e você receberá lembretes de pagamento nas datas de vencimento.
+
+Obrigado por fazer negócios conosco! 🤝
+
+_Mensagem automática - Sistema de Gestão Financeira_`;
+
+    // Get user's active WhatsApp instance or use admin instance as fallback
+    const userInstance = await this.getUserActiveInstance(userId);
+    if (!userInstance) {
+      console.log(`No user instance found for user ${userId}, using admin instance as fallback`);
+    }
+    const success = await this.sendTextMessage(phoneNumber, message, userInstance);
+
+    // Salvar no banco de dados
+    try {
+      const messageData: InsertWhatsappMessage = {
+        clientId,
+        content: message,
+        templateType: 'approval',
+        status: success ? 'sent' : 'failed',
+      };
+
+      await storage.createWhatsappMessage(messageData, userId);
+    } catch (error) {
+      console.error('Error saving WhatsApp message to database:', error);
+    }
+
+    return success;
+  }
+
+  async sendSaleRejectionNotification(clientId: number, clientName: string, phoneNumber: string, description: string, totalAmount: number, rejectionReason: string, userId: number): Promise<boolean> {
+    const formattedAmount = totalAmount.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
+
+    const message = `Olá ${clientName}!
+
+Infelizmente, sua venda parcelada foi REJEITADA. ❌
+
+📝 ${description}
+💰 Valor: ${formattedAmount}
+
+${rejectionReason ? `Motivo: ${rejectionReason}` : ''}
+
+Para mais informações ou para tentar novamente, entre em contato conosco.
+
+_Mensagem automática - Sistema de Gestão Financeira_`;
+
+    // Get user's active WhatsApp instance or use admin instance as fallback
+    const userInstance = await this.getUserActiveInstance(userId);
+    if (!userInstance) {
+      console.log(`No user instance found for user ${userId}, using admin instance as fallback`);
+    }
+    const success = await this.sendTextMessage(phoneNumber, message, userInstance);
+
+    // Salvar no banco de dados
+    try {
+      const messageData: InsertWhatsappMessage = {
+        clientId,
+        content: message,
+        templateType: 'rejection',
+        status: success ? 'sent' : 'failed',
+      };
+
+      await storage.createWhatsappMessage(messageData, userId);
+    } catch (error) {
+      console.error('Error saving WhatsApp message to database:', error);
+    }
+
+    return success;
+  }
+
   async getUserActiveInstance(userId: number): Promise<string | undefined> {
     try {
       const instances = await storage.getUserWhatsappInstances(userId);

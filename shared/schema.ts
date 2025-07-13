@@ -94,7 +94,7 @@ export const whatsappMessages = pgTable("whatsapp_messages", {
   userId: integer("user_id").notNull().references(() => users.id),
   clientId: integer("client_id").notNull().references(() => clients.id),
   content: text("content").notNull(),
-  templateType: varchar("template_type"), // reminder, overdue, custom
+  templateType: varchar("template_type"), // reminder, overdue, custom, approval, rejection
   status: varchar("status").notNull().default("sent"), // sent, delivered, read, failed
   sentAt: timestamp("sent_at").defaultNow(),
 });

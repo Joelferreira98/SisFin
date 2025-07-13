@@ -621,6 +621,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createReceivablesFromInstallmentSale(saleId, userId);
       }
       
+      // Send WhatsApp notification to client
+      const client = await storage.getClient(sale.clientId, userId);
+      if (client && client.whatsapp) {
+        const whatsappService = getWhatsAppService();
+        if (whatsappService) {
+          try {
+            if (approved) {
+              await whatsappService.sendSaleApprovalNotification(
+                client.id,
+                client.name,
+                client.whatsapp,
+                sale.description,
+                sale.totalAmount,
+                sale.installmentCount,
+                userId
+              );
+              console.log(`Approval notification sent to ${client.name} (${client.whatsapp})`);
+            } else {
+              await whatsappService.sendSaleRejectionNotification(
+                client.id,
+                client.name,
+                client.whatsapp,
+                sale.description,
+                sale.totalAmount,
+                notes || 'Não especificado',
+                userId
+              );
+              console.log(`Rejection notification sent to ${client.name} (${client.whatsapp})`);
+            }
+          } catch (whatsappError) {
+            console.error('Error sending WhatsApp notification:', whatsappError);
+            // Don't fail the approval if WhatsApp fails
+          }
+        }
+      }
+      
       res.json(sale);
     } catch (error) {
       console.error("Error updating sale status:", error);
