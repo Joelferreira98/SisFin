@@ -561,3 +561,35 @@ The system now fully supports PostgreSQL with automated setup scripts, comprehen
 - **Best Practices**: Security, performance, and maintenance recommendations
 
 The system documentation is now fully aligned with PostgreSQL, providing users with comprehensive guides for installation, configuration, troubleshooting, and maintenance across all deployment scenarios.
+
+## Latest Updates (July 13, 2025 - VPS Database Error Resolution)
+
+### Critical VPS Issue Resolution
+- **Problem**: Users experiencing "DATABASE_URL must be set" error on VPS deployments
+- **Root Cause**: PostgreSQL not properly configured or DATABASE_URL environment variable not set
+- **Impact**: Application failing to start on VPS environments
+
+### Emergency Solution Scripts Created
+- **vps-database-fix.sh**: Comprehensive script that automatically installs PostgreSQL, creates database/user, configures authentication, and sets up .env file
+- **start-vps.sh**: Automated startup script that verifies database connection and launches application
+- **VPS_FIX_URGENTE.md**: Complete troubleshooting guide with step-by-step manual resolution
+
+### Technical Solution Implementation
+- **Automated Detection**: Scripts detect PostgreSQL installation status and version
+- **Authentication Configuration**: Automatic pg_hba.conf modification for md5 authentication
+- **Environment Setup**: Automatic .env file creation with correct DATABASE_URL format
+- **Connection Testing**: Built-in database connection verification
+- **Error Recovery**: Comprehensive error handling with alternative solutions
+
+### User Experience Improvements
+- **Quick Resolution**: Single command execution for complete problem resolution
+- **Clear Documentation**: Step-by-step manual instructions as backup
+- **Prominent Placement**: Added urgent fix section to README.md for immediate visibility
+- **Multi-Platform Support**: Scripts work across different Ubuntu/Debian VPS configurations
+
+### Documentation Updates
+- **README.md**: Added prominent VPS error resolution section
+- **VPS_FIX_URGENTE.md**: Created dedicated emergency troubleshooting guide
+- **Script Integration**: All scripts properly integrated with existing documentation
+
+The VPS database configuration issue is now resolved with automated scripts and comprehensive documentation, ensuring users can quickly resolve the "DATABASE_URL must be set" error.

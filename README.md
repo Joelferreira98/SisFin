@@ -52,6 +52,19 @@ Sistema completo de gestão financeira com funcionalidades avançadas de comunic
 
 ## 📦 Instalação Rápida
 
+### 🚨 ERRO VPS: "DATABASE_URL must be set"
+
+Se você está vendo este erro na VPS, execute:
+```bash
+# Solução rápida
+wget https://raw.githubusercontent.com/Joelferreira98/SisFin/main/vps-database-fix.sh
+chmod +x vps-database-fix.sh
+./vps-database-fix.sh
+./start-vps.sh
+```
+
+**Documentação completa:** `VPS_FIX_URGENTE.md`
+
 ### Método 1: Desenvolvimento Local
 
 ```bash
