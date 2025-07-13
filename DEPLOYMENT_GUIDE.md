@@ -53,8 +53,8 @@ nano .env
 
 **Conteúdo do arquivo .env:**
 ```
-# Database Configuration
-DATABASE_URL=mysql://financeuser:financepass@db:3306/financedb
+# Database Configuration (PostgreSQL)
+DATABASE_URL=postgresql://financeuser:financepass@db:5432/financedb
 SESSION_SECRET=sua-chave-secreta-super-segura-aqui
 
 # Evolution API Configuration
@@ -74,20 +74,32 @@ NODE_ENV=production
 
 ## Passo 3: Configuração do Banco de Dados
 
-### 3.1 Configurar senha do MySQL
+### 3.1 Configurar senha do PostgreSQL
 Edite o arquivo `docker-compose.yml` e altere as senhas:
 
 ```yaml
 environment:
-  - MYSQL_DATABASE=financedb
-  - MYSQL_USER=financeuser
-  - MYSQL_PASSWORD=SUA_SENHA_AQUI
-  - MYSQL_ROOT_PASSWORD=SUA_SENHA_ROOT_AQUI
+  - POSTGRES_DB=financedb
+  - POSTGRES_USER=financeuser
+  - POSTGRES_PASSWORD=SUA_SENHA_AQUI
 ```
 
 ### 3.2 Atualizar DATABASE_URL no .env
 ```
-DATABASE_URL=mysql://financeuser:SUA_SENHA_AQUI@db:3306/financedb
+DATABASE_URL=postgresql://financeuser:SUA_SENHA_AQUI@db:5432/financedb
+```
+
+### 3.3 Instalação Local (Alternativa sem Docker)
+```bash
+# Usar script automatizado
+chmod +x setup-vps-db.sh
+./setup-vps-db.sh
+
+# Ou instalar manualmente
+sudo apt install postgresql postgresql-contrib
+sudo -u postgres createdb financedb
+sudo -u postgres psql -c "CREATE USER financeuser WITH PASSWORD 'financepass';"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE financedb TO financeuser;"
 ```
 
 ## Passo 4: Configuração de Domínio (Opcional)

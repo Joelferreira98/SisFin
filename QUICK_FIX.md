@@ -42,7 +42,7 @@ chmod +x install-local.sh
 nano .env
 
 # Configurar minimamente:
-DATABASE_URL=mysql://root:@localhost:3306/financedb
+DATABASE_URL=postgresql://financeuser:financepass@localhost:5432/financedb
 SESSION_SECRET=sua-chave-secreta-de-32-caracteres
 EVOLUTION_API_URL=https://sua-evolution-api.com
 EVOLUTION_API_KEY=sua-chave-api
@@ -71,7 +71,7 @@ npm run dev
 ## 💡 Dicas Importantes
 1. ✅ Use instalação local se Docker der problemas
 2. ✅ Configure Evolution API depois
-3. ✅ MySQL pode ser instalado localmente
+3. ✅ PostgreSQL pode ser instalado localmente
 4. ✅ Todos os recursos funcionam sem Docker
 
 ---

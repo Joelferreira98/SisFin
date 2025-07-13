@@ -72,7 +72,7 @@ npm run dev
 
 **Sintomas:**
 ```
-Error: listen EADDRINUSE: address already in use :::3306
+Error: listen EADDRINUSE: address already in use :::5432
 Error: listen EADDRINUSE: address already in use :::5000
 ```
 
@@ -99,24 +99,24 @@ at PromisePool.query
 ```
 
 **Causas:**
-1. MySQL não está rodando
+1. PostgreSQL não está rodando
 2. Configuração incorreta da DATABASE_URL
 3. Firewall bloqueando conexões
 4. Problemas de rede
 
 **Soluções:**
 
-#### Solução 1: Verificar MySQL
+#### Solução 1: Verificar PostgreSQL
 ```bash
 # Verificar status
-systemctl status mysql
+systemctl status postgresql
 
 # Iniciar se necessário
-sudo systemctl start mysql
-sudo systemctl enable mysql
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
 
 # Testar conexão
-mysql -u root -p -e "SELECT 1;"
+psql -U financeuser -h localhost -d financedb -c "SELECT 1;"
 ```
 
 #### Solução 2: Configurar DATABASE_URL
@@ -125,50 +125,52 @@ mysql -u root -p -e "SELECT 1;"
 nano .env
 
 # Configurar corretamente
-DATABASE_URL=mysql://usuario:senha@localhost:3306/financedb
+DATABASE_URL=postgresql://financeuser:financepass@localhost:5432/financedb
 ```
 
 #### Solução 3: Criar banco e usuário
 ```sql
--- Conectar ao MySQL
-mysql -u root -p
+-- Conectar ao PostgreSQL
+sudo -u postgres psql
 
 -- Criar banco
-CREATE DATABASE IF NOT EXISTS financedb;
+CREATE DATABASE financedb;
 
 -- Criar usuário
-CREATE USER 'financeuser'@'localhost' IDENTIFIED BY 'senha123';
-GRANT ALL PRIVILEGES ON financedb.* TO 'financeuser'@'localhost';
-FLUSH PRIVILEGES;
+CREATE USER financeuser WITH PASSWORD 'financepass';
+GRANT ALL PRIVILEGES ON DATABASE financedb TO financeuser;
+\q
 ```
 
-#### Solução 4: Usar SQLite (temporário)
+#### Solução 4: Usar script automatizado
 ```bash
-# Instalar SQLite
-npm install better-sqlite3
-
-# Configurar .env
-DATABASE_URL=sqlite:./database.sqlite
+# Script completo de configuração
+chmod +x setup-vps-db.sh
+./setup-vps-db.sh
 ```
 
-### Erro: "Access denied"
+### Erro: "Access denied" (PostgreSQL)
 
 **Sintomas:**
 ```
-Error: Access denied for user 'root'@'localhost'
+Error: password authentication failed for user "financeuser"
 ```
 
 **Soluções:**
 ```bash
-# Resetar senha do root
-sudo mysql -u root -p
+# Resetar senha do usuário
+sudo -u postgres psql
 
-# Ou usar autenticação via socket
-sudo mysql -u root
+# Alterar senha
+ALTER USER financeuser WITH PASSWORD 'nova_senha';
+\q
 
-# Configurar senha
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'nova_senha';
-FLUSH PRIVILEGES;
+# Configurar autenticação no pg_hba.conf
+sudo nano /etc/postgresql/*/main/pg_hba.conf
+# Alterar 'peer' para 'md5' na linha local
+
+# Reiniciar PostgreSQL
+sudo systemctl restart postgresql
 ```
 
 ## 📡 Problemas com Evolution API
@@ -280,14 +282,14 @@ CREATE INDEX idx_receivables_due_date ON receivables(due_date);
 CREATE INDEX idx_payables_due_date ON payables(due_date);
 
 -- Analisar consultas lentas
-SHOW PROCESSLIST;
+SELECT * FROM pg_stat_activity WHERE state = 'active';
 ```
 
 #### Solução 2: Limpar dados antigos
 ```sql
 -- Limpar logs antigos
-DELETE FROM whatsapp_messages WHERE created_at < DATE_SUB(NOW(), INTERVAL 6 MONTH);
-DELETE FROM reminder_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 3 MONTH);
+DELETE FROM whatsapp_messages WHERE created_at < NOW() - INTERVAL '6 months';
+DELETE FROM reminder_logs WHERE created_at < NOW() - INTERVAL '3 months';
 ```
 
 #### Solução 3: Configurar cache
@@ -341,7 +343,7 @@ chmod +x docker-diagnostics.sh
 tail -f logs/app.log
 
 # Logs do sistema
-journalctl -u mysql -f
+journalctl -u postgresql -f
 journalctl -u nginx -f
 
 # Logs Docker
@@ -351,10 +353,10 @@ docker-compose logs -f
 ### Backup e restauração
 ```bash
 # Backup completo
-mysqldump -u root -p financedb > backup.sql
+pg_dump -U financeuser -h localhost financedb > backup.sql
 
 # Restaurar backup
-mysql -u root -p financedb < backup.sql
+psql -U financeuser -h localhost -d financedb < backup.sql
 
 # Backup arquivos
 tar -czf backup.tar.gz /caminho/para/SisFin
@@ -368,7 +370,7 @@ df -h
 free -h
 
 # Conexões de rede
-netstat -tulpn | grep :3306
+netstat -tulpn | grep :5432
 netstat -tulpn | grep :5000
 ```
 

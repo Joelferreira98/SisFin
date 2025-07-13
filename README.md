@@ -40,13 +40,13 @@ Sistema completo de gestão financeira com funcionalidades avançadas de comunic
 
 **Backend:**
 - Node.js + Express
-- MySQL + Drizzle ORM
+- PostgreSQL + Drizzle ORM
 - Evolution API
 - Cron Jobs automáticos
 
 **Deployment:**
 - Docker + Docker Compose
-- MySQL 8.0 container
+- PostgreSQL 15 container
 - Nginx proxy reverso
 - SSL automático
 
@@ -66,9 +66,13 @@ npm install
 cp .env.example .env
 # Editar o arquivo .env com suas configurações
 
-# Configurar banco de dados
-# Instalar MySQL localmente ou usar Docker:
-docker run --name mysql-sisfin -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=financedb -p 3306:3306 -d mysql:8.0
+# Configurar banco de dados PostgreSQL
+# Opção A: Script automatizado
+chmod +x setup-vps-db.sh
+./setup-vps-db.sh
+
+# Opção B: Docker PostgreSQL
+docker run --name postgres-sisfin -e POSTGRES_PASSWORD=financepass -e POSTGRES_DB=financedb -e POSTGRES_USER=financeuser -p 5432:5432 -d postgres:15
 
 # Aplicar schema do banco
 npm run db:push
@@ -106,8 +110,8 @@ docker-compose ps
 ### Arquivo .env
 
 ```env
-# Banco de Dados
-DATABASE_URL=mysql://financeuser:senha@localhost:3306/financedb
+# Banco de Dados PostgreSQL
+DATABASE_URL=postgresql://financeuser:financepass@localhost:5432/financedb
 
 # Sessão (use chave aleatória de 32+ caracteres)
 SESSION_SECRET=sua-chave-secreta-super-segura
@@ -121,16 +125,28 @@ EVOLUTION_INSTANCE_NAME=instancia-padrao
 NODE_ENV=development
 ```
 
-### Configuração MySQL
+### Configuração PostgreSQL
 
 ```sql
 -- Criar banco de dados
 CREATE DATABASE financedb;
 
 -- Criar usuário
-CREATE USER 'financeuser'@'%' IDENTIFIED BY 'sua-senha-segura';
-GRANT ALL PRIVILEGES ON financedb.* TO 'financeuser'@'%';
-FLUSH PRIVILEGES;
+CREATE USER financeuser WITH PASSWORD 'financepass';
+GRANT ALL PRIVILEGES ON DATABASE financedb TO financeuser;
+```
+
+### Configuração Rápida PostgreSQL
+```bash
+# Instalar PostgreSQL
+sudo apt install postgresql postgresql-contrib
+
+# Usar script automatizado
+chmod +x setup-vps-db.sh
+./setup-vps-db.sh
+
+# Aplicar schema
+npm run db:push
 ```
 
 ### Configuração Evolution API

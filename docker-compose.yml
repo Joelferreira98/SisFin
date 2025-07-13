@@ -7,7 +7,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=mysql://financeuser:financepass@db:3306/financedb
+      - DATABASE_URL=postgresql://financeuser:financepass@db:5432/financedb
       - SESSION_SECRET=your-super-secret-session-key-here
       - EVOLUTION_API_URL=${EVOLUTION_API_URL}
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
@@ -19,18 +19,17 @@ services:
       - ./uploads:/app/uploads
 
   db:
-    image: mysql:8.0
+    image: postgres:15
     environment:
-      - MYSQL_DATABASE=financedb
-      - MYSQL_USER=financeuser
-      - MYSQL_PASSWORD=financepass
-      - MYSQL_ROOT_PASSWORD=rootpass
+      - POSTGRES_DB=financedb
+      - POSTGRES_USER=financeuser
+      - POSTGRES_PASSWORD=financepass
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
 
 volumes:
-  mysql_data:
+  postgres_data:

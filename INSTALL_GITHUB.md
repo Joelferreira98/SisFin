@@ -29,8 +29,8 @@ nano .env
 
 **Configurações obrigatórias no .env:**
 ```env
-# Banco de dados
-DATABASE_URL=mysql://financeuser:senha@localhost:3306/financedb
+# Banco de dados PostgreSQL
+DATABASE_URL=postgresql://financeuser:financepass@localhost:5432/financedb
 
 # Chave de sessão (gerar chave aleatória)
 SESSION_SECRET=sua-chave-secreta-de-32-caracteres
@@ -43,32 +43,37 @@ EVOLUTION_INSTANCE_NAME=instancia-padrao
 
 ### 4. Configurar Banco de Dados
 
-**Opção A: MySQL Local**
+**Opção A: Script Automatizado (Recomendado)**
 ```bash
-# Instalar MySQL
-sudo apt install mysql-server
+# Usar script de configuração automática
+chmod +x setup-vps-db.sh
+./setup-vps-db.sh
+```
 
-# Conectar ao MySQL
-sudo mysql -u root -p
+**Opção B: PostgreSQL Local**
+```bash
+# Instalar PostgreSQL
+sudo apt install postgresql postgresql-contrib
+
+# Conectar ao PostgreSQL
+sudo -u postgres psql
 
 # Criar banco e usuário
 CREATE DATABASE financedb;
-CREATE USER 'financeuser'@'localhost' IDENTIFIED BY 'sua-senha';
-GRANT ALL PRIVILEGES ON financedb.* TO 'financeuser'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
+CREATE USER financeuser WITH PASSWORD 'financepass';
+GRANT ALL PRIVILEGES ON DATABASE financedb TO financeuser;
+\q
 ```
 
-**Opção B: Docker MySQL**
+**Opção C: Docker PostgreSQL**
 ```bash
-# Executar MySQL em container
-docker run --name mysql-sisfin \
-  -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=financedb \
-  -e MYSQL_USER=financeuser \
-  -e MYSQL_PASSWORD=sua-senha \
-  -p 3306:3306 \
-  -d mysql:8.0
+# Executar PostgreSQL em container
+docker run --name postgres-sisfin \
+  -e POSTGRES_PASSWORD=financepass \
+  -e POSTGRES_DB=financedb \
+  -e POSTGRES_USER=financeuser \
+  -p 5432:5432 \
+  -d postgres:15
 ```
 
 ### 5. Aplicar Schema do Banco
