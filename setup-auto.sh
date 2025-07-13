@@ -21,6 +21,15 @@ generate_key() {
 echo "🔐 Gerando chave de sessão..."
 SESSION_SECRET=$(generate_key 32)
 
+# Verificar se DATABASE_URL está disponível no ambiente
+if [[ -z "$DATABASE_URL" ]]; then
+    echo "⚠️ DATABASE_URL não encontrada no ambiente"
+    DB_CONFIG="# DATABASE_URL não encontrada - configure manualmente"
+else
+    echo "✅ DATABASE_URL encontrada no ambiente"
+    DB_CONFIG="DATABASE_URL=$DATABASE_URL"
+fi
+
 # Backup do .env existente
 if [[ -f ".env" ]]; then
     cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
@@ -39,8 +48,7 @@ cat > .env << EOF
 # CONFIGURAÇÕES DO BANCO DE DADOS
 # ==============================================
 
-# Replit Database será carregada automaticamente
-# DATABASE_URL será definida automaticamente pelo Replit
+$DB_CONFIG
 
 # ==============================================
 # CONFIGURAÇÕES DE SESSÃO

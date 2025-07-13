@@ -73,10 +73,24 @@ SisFin/
 
 ## Solução de Problemas
 
-1. **Erro de DATABASE_URL**: Execute `node test-config.js`
+1. **Erro de DATABASE_URL**: Execute `./fix-database-url.sh`
 2. **Erro de PM2**: Use `./start-simple.sh` como alternativa
 3. **Erro de build**: Execute `npm run build` manualmente
 4. **Problemas de configuração**: Execute `./setup-auto.sh` novamente
+
+### Erro: "DATABASE_URL must be set"
+
+Se você receber este erro, significa que a DATABASE_URL não foi carregada corretamente:
+
+```bash
+./fix-database-url.sh
+```
+
+Este script irá:
+- Verificar se DATABASE_URL está no ambiente
+- Atualizar o arquivo .env com a URL correta
+- Testar a configuração
+- Instruir próximos passos
 
 ## Comandos Úteis
 
