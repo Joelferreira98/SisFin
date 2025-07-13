@@ -117,6 +117,29 @@ Este comando mostra:
 - Configurações do banco de dados
 - Logs do sistema
 - Teste de configuração
+
+## 🚨 SOLUÇÃO URGENTE VPS - DATABASE_URL
+
+Se você está recebendo o erro "DATABASE_URL must be set" no VPS:
+
+```bash
+# Solução rápida
+./vps-database-fix.sh
+
+# Ou baixar e executar
+wget -O vps-database-fix.sh https://raw.githubusercontent.com/Joelferreira98/SisFin/main/vps-database-fix.sh
+chmod +x vps-database-fix.sh
+./vps-database-fix.sh
+```
+
+**Depois do fix:**
+```bash
+npm run build
+./start-vps.sh
+```
+
+📋 **Documentação completa:** [VPS_FIX_URGENTE.md](VPS_FIX_URGENTE.md)
+
 ```
 
 3. **Configure o ambiente**

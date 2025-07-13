@@ -591,6 +591,39 @@ The system now provides complete revision of all components with proper ES6 modu
 
 The system now provides a clean, automated configuration experience with automatic key generation and comprehensive environment setup.
 
+## Latest Updates (July 13, 2025 - VPS DATABASE_URL Fix)
+
+### Critical VPS Issue Resolution
+- **Problem Identified**: VPS deployments failing with "DATABASE_URL must be set" error despite correct .env configuration
+- **Root Cause**: Dotenv not loading correctly in VPS environment due to import order and module resolution
+- **Impact**: Complete application failure on VPS while working fine on Replit
+
+### VPS-Specific Solutions Created
+- **vps-database-fix.sh**: Comprehensive script that fixes DATABASE_URL loading issues on VPS
+- **start-vps.sh**: VPS-optimized startup script with port selection and environment variable export
+- **test-env.js**: VPS-specific environment variable testing with detailed diagnostics
+- **VPS_FIX_URGENTE.md**: Complete urgent fix documentation for VPS users
+
+### Technical Implementation
+- **Dotenv Loading Fix**: Modified server/index.ts to load dotenv before any other imports
+- **Environment Variable Export**: Added explicit variable export before application startup
+- **Error Handling**: Enhanced error messages with specific troubleshooting guidance
+- **Port Configuration**: Interactive port selection for VPS environments
+
+### User Experience Improvements
+- **One-Command Fix**: Simple ./vps-database-fix.sh resolves all DATABASE_URL issues
+- **Clear Documentation**: Comprehensive VPS troubleshooting guide
+- **Automated Testing**: Built-in environment variable validation
+- **Multiple Solutions**: Both automated scripts and manual steps provided
+
+### Database Configuration
+- **PostgreSQL Support**: Full PostgreSQL configuration with SSL support
+- **Connection String Validation**: Automatic validation of DATABASE_URL format
+- **Environment Detection**: Automatic detection of Replit vs VPS environment
+- **Backup System**: Automatic backup of configuration files before changes
+
+The VPS DATABASE_URL fix ensures reliable deployment across all environments with comprehensive error handling and automated problem resolution.
+
 ## Latest Updates (July 13, 2025 - Complete Documentation Migration to PostgreSQL)
 
 ### Complete Documentation Overhaul
