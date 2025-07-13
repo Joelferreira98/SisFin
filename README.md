@@ -52,18 +52,24 @@ Sistema completo de gestão financeira com funcionalidades avançadas de comunic
 
 ## 📦 Instalação Rápida
 
-### 🚨 ERRO VPS: "DATABASE_URL must be set"
+### 🚨 ERROS VPS: Solução Completa
 
-Se você está vendo este erro na VPS, execute:
+Se você está vendo erros como:
+- `DATABASE_URL must be set`
+- `TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string`
+
+**SOLUÇÃO DEFINITIVA:**
 ```bash
-# Solução rápida
-wget https://raw.githubusercontent.com/Joelferreira98/SisFin/main/vps-database-fix.sh
-chmod +x vps-database-fix.sh
-./vps-database-fix.sh
-./start-vps.sh
+# Script completo que resolve todos os erros
+wget https://raw.githubusercontent.com/Joelferreira98/SisFin/main/vps-complete-fix.sh
+chmod +x vps-complete-fix.sh
+./vps-complete-fix.sh
+
+# Iniciar aplicação
+./start-app-vps.sh
 ```
 
-**Documentação completa:** `VPS_FIX_URGENTE.md`
+**Documentação completa:** `README_VPS_ERRO.md`
 
 ### Método 1: Desenvolvimento Local
 

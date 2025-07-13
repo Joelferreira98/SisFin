@@ -562,34 +562,38 @@ The system now fully supports PostgreSQL with automated setup scripts, comprehen
 
 The system documentation is now fully aligned with PostgreSQL, providing users with comprehensive guides for installation, configuration, troubleshooting, and maintenance across all deployment scenarios.
 
-## Latest Updates (July 13, 2025 - VPS Database Error Resolution)
+## Latest Updates (July 13, 2025 - Complete VPS Error Resolution)
 
-### Critical VPS Issue Resolution
-- **Problem**: Users experiencing "DATABASE_URL must be set" error on VPS deployments
-- **Root Cause**: PostgreSQL not properly configured or DATABASE_URL environment variable not set
-- **Impact**: Application failing to start on VPS environments
+### Critical VPS Issues Resolution
+- **Problem 1**: Users experiencing "DATABASE_URL must be set" error on VPS deployments
+- **Problem 2**: Users getting "TypeError [ERR_INVALID_ARG_TYPE]: The 'paths[0]' argument must be of type string" from vite.config.ts
+- **Root Cause**: PostgreSQL not configured AND import.meta.dirname not available in Node.js versions < 20
+- **Impact**: Application completely failing to start on VPS environments
 
-### Emergency Solution Scripts Created
-- **vps-database-fix.sh**: Comprehensive script that automatically installs PostgreSQL, creates database/user, configures authentication, and sets up .env file
-- **start-vps.sh**: Automated startup script that verifies database connection and launches application
-- **VPS_FIX_URGENTE.md**: Complete troubleshooting guide with step-by-step manual resolution
+### Complete Solution Scripts Created
+- **vps-complete-fix.sh**: Comprehensive script that resolves both DATABASE_URL and Vite config errors
+- **setup-node-environment.sh**: Node.js environment configuration for VPS compatibility
+- **start-app-vps.sh**: Automated startup script with proper environment variable setup
+- **README_VPS_ERRO.md**: Complete error resolution guide with definitive solutions
 
 ### Technical Solution Implementation
-- **Automated Detection**: Scripts detect PostgreSQL installation status and version
-- **Authentication Configuration**: Automatic pg_hba.conf modification for md5 authentication
-- **Environment Setup**: Automatic .env file creation with correct DATABASE_URL format
-- **Connection Testing**: Built-in database connection verification
-- **Error Recovery**: Comprehensive error handling with alternative solutions
+- **Node.js Update**: Automatic Node.js v20 installation to support import.meta.dirname
+- **PostgreSQL Configuration**: Complete database setup with user creation and authentication
+- **Environment Variables**: Proper .env file creation with all required variables
+- **Vite Config Fix**: Resolved import.meta.dirname undefined error through Node.js update
+- **Dependency Management**: Clean npm cache and reinstall to prevent package conflicts
 
 ### User Experience Improvements
-- **Quick Resolution**: Single command execution for complete problem resolution
-- **Clear Documentation**: Step-by-step manual instructions as backup
-- **Prominent Placement**: Added urgent fix section to README.md for immediate visibility
-- **Multi-Platform Support**: Scripts work across different Ubuntu/Debian VPS configurations
+- **Single Command Solution**: One wget command resolves all VPS errors
+- **Automated Testing**: Built-in connection and application testing
+- **Clear Documentation**: Step-by-step manual alternatives for script failures
+- **Prominent Placement**: Updated README.md with complete error resolution section
+- **Multi-Platform Support**: Works across different Ubuntu/Debian VPS configurations
 
 ### Documentation Updates
-- **README.md**: Added prominent VPS error resolution section
-- **VPS_FIX_URGENTE.md**: Created dedicated emergency troubleshooting guide
-- **Script Integration**: All scripts properly integrated with existing documentation
+- **README.md**: Updated with complete VPS error resolution section
+- **README_VPS_ERRO.md**: Created definitive VPS troubleshooting guide
+- **SOLUCAO_VPS.md**: Updated with both error types and solutions
+- **Script Integration**: All scripts properly integrated with GitHub repository
 
-The VPS database configuration issue is now resolved with automated scripts and comprehensive documentation, ensuring users can quickly resolve the "DATABASE_URL must be set" error.
+The complete VPS error resolution system now handles both DATABASE_URL and Vite configuration issues with automated scripts, comprehensive documentation, and alternative manual solutions.

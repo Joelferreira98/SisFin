@@ -1,8 +1,15 @@
 # 🚨 SOLUÇÃO DEFINITIVA - VPS
 
-## ❌ Erro Atual
+## ❌ Erros Atuais
+
+### Erro 1: DATABASE_URL
 ```
 Error: DATABASE_URL must be set. Did you forget to provision a database?
+```
+
+### Erro 2: Vite Config
+```
+TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
 ```
 
 ## ✅ Solução Imediata
@@ -56,7 +63,20 @@ export DATABASE_URL="postgresql://financeuser:financepass123@localhost:5432/fina
 npm run dev
 ```
 
-## 🔧 Comando Único
+## 🔧 Solução Completa (Recomendada)
+
+Execute o script completo:
+```bash
+# Baixar e executar script de configuração
+wget https://raw.githubusercontent.com/Joelferreira98/SisFin/main/setup-node-environment.sh
+chmod +x setup-node-environment.sh
+./setup-node-environment.sh
+
+# Depois executar
+./start-dev.sh
+```
+
+## 🔧 Comando Único (Manual)
 
 Execute tudo de uma vez:
 ```bash
