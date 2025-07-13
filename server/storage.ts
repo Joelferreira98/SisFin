@@ -822,6 +822,26 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Installment sale not found");
     }
 
+    // Check if user has sufficient transaction limits
+    const userSubscriptions = await this.getUserSubscriptions(userId);
+    const activeSub = userSubscriptions.find(sub => sub.isActive);
+    
+    if (activeSub) {
+      // Count current receivables
+      const currentReceivables = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(receivables)
+        .where(eq(receivables.userId, userId));
+      
+      const currentCount = Number(currentReceivables[0]?.count || 0);
+      const maxTransactions = activeSub.plan.maxTransactions;
+      
+      // Check if creating all installments would exceed limit
+      if (currentCount + sale.installmentCount > maxTransactions) {
+        throw new Error(`Não é possível criar ${sale.installmentCount} parcelas. Limite de ${maxTransactions} transações atingido. Atual: ${currentCount}`);
+      }
+    }
+
     // Calculate installment dates
     const firstDueDate = new Date(sale.firstDueDate);
     const installmentAmount = parseFloat(sale.installmentValue);

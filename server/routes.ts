@@ -699,7 +699,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If approved, create receivables for each installment
       if (approved) {
-        await storage.createReceivablesFromInstallmentSale(saleId, userId);
+        try {
+          await storage.createReceivablesFromInstallmentSale(saleId, userId);
+        } catch (error) {
+          // If we can't create receivables due to limits, revert the approval
+          await storage.updateInstallmentSale(saleId, {
+            status: "confirmed",
+            userReviewedAt: null,
+            userApprovedAt: null,
+            notes: null
+          }, userId);
+          
+          return res.status(400).json({ 
+            message: error.message || "Erro ao criar parcelas da venda" 
+          });
+        }
       }
       
       // Send WhatsApp notification to client

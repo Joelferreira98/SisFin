@@ -112,8 +112,8 @@ export default function InstallmentSales() {
         body: JSON.stringify({ approved, notes }),
       });
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
+        const errorData = await response.json().catch(() => ({ message: "Erro desconhecido" }));
+        throw new Error(errorData.message || "Erro ao processar solicitação");
       }
       return response.json();
     },
@@ -140,7 +140,7 @@ export default function InstallmentSales() {
       }
       toast({
         title: "Erro",
-        description: "Falha ao atualizar status da venda",
+        description: error.message || "Falha ao atualizar status da venda",
         variant: "destructive",
       });
     },
