@@ -16,6 +16,7 @@ import Admin from "@/pages/admin";
 import InstallmentSales from "@/pages/installment-sales";
 import ConfirmSale from "@/pages/confirm-sale";
 import PaymentReminders from "@/pages/payment-reminders";
+import Plans from "@/pages/plans";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
       <ProtectedRoute path="/whatsapp" component={WhatsApp} />
       <ProtectedRoute path="/confirmations" component={InstallmentSales} />
       <ProtectedRoute path="/payment-reminders" component={PaymentReminders} />
+      <ProtectedRoute path="/plans" component={Plans} />
       <ProtectedRoute path="/admin" component={Admin} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/confirm-sale/:token" component={ConfirmSale} />

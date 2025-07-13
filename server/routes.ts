@@ -22,21 +22,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/plan-limits/receivables', isAuthenticated, async (req: any, res) => {
+  app.get('/api/plan-limits/transactions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const planLimit = await storage.checkPlanLimit(userId, 'maxReceivables');
-      res.json(planLimit);
-    } catch (error) {
-      console.error("Error checking plan limit:", error);
-      res.status(500).json({ message: "Failed to check plan limit" });
-    }
-  });
-
-  app.get('/api/plan-limits/payables', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const planLimit = await storage.checkPlanLimit(userId, 'maxPayables');
+      const planLimit = await storage.checkPlanLimit(userId, 'maxTransactions');
       res.json(planLimit);
     } catch (error) {
       console.error("Error checking plan limit:", error);
@@ -162,10 +151,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       
       // Verificar limitação do plano
-      const planLimit = await storage.checkPlanLimit(userId, 'maxReceivables');
+      const planLimit = await storage.checkPlanLimit(userId, 'maxTransactions');
       if (!planLimit.canCreate) {
         return res.status(403).json({ 
-          message: "Limite de contas a receber atingido para seu plano",
+          message: "Limite de transações atingido para seu plano",
           currentCount: planLimit.currentCount,
           maxLimit: planLimit.maxLimit
         });
@@ -237,10 +226,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       
       // Verificar limitação do plano
-      const planLimit = await storage.checkPlanLimit(userId, 'maxPayables');
+      const planLimit = await storage.checkPlanLimit(userId, 'maxTransactions');
       if (!planLimit.canCreate) {
         return res.status(403).json({ 
-          message: "Limite de contas a pagar atingido para seu plano",
+          message: "Limite de transações atingido para seu plano",
           currentCount: planLimit.currentCount,
           maxLimit: planLimit.maxLimit
         });
@@ -1053,6 +1042,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting plan:", error);
       res.status(500).json({ message: "Failed to delete plan" });
+    }
+  });
+
+  // User subscription routes
+  app.get("/api/user/subscriptions", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const subscriptions = await storage.getUserSubscriptions(userId);
+      res.json(subscriptions);
+    } catch (error) {
+      console.error("Error fetching user subscriptions:", error);
+      res.status(500).json({ message: "Failed to fetch subscriptions" });
+    }
+  });
+
+  app.post("/api/user/subscriptions", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { planId } = req.body;
+      
+      // Deactivate current subscription
+      const currentSubscriptions = await storage.getUserSubscriptions(userId);
+      const currentActive = currentSubscriptions.find(sub => sub.isActive);
+      
+      if (currentActive) {
+        await storage.updateUserSubscription(currentActive.id, { isActive: false });
+      }
+      
+      // Create new subscription
+      const newSubscription = await storage.createUserSubscription({
+        userId,
+        planId,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        isActive: true
+      });
+      
+      res.status(201).json(newSubscription);
+    } catch (error) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ message: "Failed to create subscription" });
     }
   });
 

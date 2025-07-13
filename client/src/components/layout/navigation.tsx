@@ -9,7 +9,8 @@ import {
   MessageSquare,
   Settings,
   CreditCard,
-  Bell
+  Bell,
+  Crown
 } from "lucide-react";
 
 export default function Navigation() {
@@ -24,6 +25,7 @@ export default function Navigation() {
     { name: "Lembretes", path: "/payment-reminders", icon: Bell },
     { name: "Relatórios", path: "/reports", icon: BarChart3 },
     { name: "WhatsApp", path: "/whatsapp", icon: MessageSquare },
+    { name: "Planos", path: "/plans", icon: Crown },
     { name: "Admin", path: "/admin", icon: Settings },
   ];
 

@@ -69,6 +69,7 @@ export interface IStorage {
   // Subscription operations
   getUserSubscriptions(userId: number): Promise<(UserSubscription & { plan: Plan })[]>;
   createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription>;
+  updateUserSubscription(id: number, subscription: Partial<InsertUserSubscription>): Promise<UserSubscription>;
   
   // Admin check
   isUserAdmin(userId: number): Promise<boolean>;
@@ -290,6 +291,15 @@ export class DatabaseStorage implements IStorage {
     return subscription;
   }
 
+  async updateUserSubscription(id: number, subscriptionData: Partial<InsertUserSubscription>): Promise<UserSubscription> {
+    const [subscription] = await db
+      .update(userSubscriptions)
+      .set(subscriptionData)
+      .where(eq(userSubscriptions.id, id))
+      .returning();
+    return subscription;
+  }
+
   // Admin check
   async isUserAdmin(userId: number): Promise<boolean> {
     const [user] = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, userId));
@@ -332,7 +342,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async checkPlanLimit(userId: number, limitType: 'maxClients' | 'maxReceivables' | 'maxPayables' | 'maxWhatsappMessages'): Promise<{ canCreate: boolean; currentCount: number; maxLimit: number }> {
+  async checkPlanLimit(userId: number, limitType: 'maxClients' | 'maxTransactions' | 'maxWhatsappMessages'): Promise<{ canCreate: boolean; currentCount: number; maxLimit: number }> {
     const plan = await this.getUserCurrentPlan(userId);
     if (!plan) {
       return { canCreate: false, currentCount: 0, maxLimit: 0 };
@@ -342,9 +352,8 @@ export class DatabaseStorage implements IStorage {
     
     const limitMap = {
       maxClients: { current: usage.clients, max: plan.maxClients },
-      maxReceivables: { current: usage.receivables, max: plan.maxReceivables },
-      maxPayables: { current: usage.payables, max: plan.maxPayables },
-      maxWhatsappMessages: { current: usage.whatsappMessages, max: plan.maxWhatsappMessages },
+      maxTransactions: { current: usage.receivables + usage.payables, max: plan.maxTransactions },
+      maxWhatsappMessages: { current: usage.whatsappMessages, max: -1 }, // WhatsApp messages unlimited for now
     };
 
     const limit = limitMap[limitType];
