@@ -142,9 +142,22 @@ if [[ ! -d "node_modules" ]]; then
     npm install
 fi
 
+# Verificar se dotenv está instalado
+if ! npm list dotenv >/dev/null 2>&1; then
+    log "Instalando dotenv..."
+    npm install dotenv
+fi
+
 # Executar migrations
 log "Executando migrations do banco..."
 npm run db:push 2>/dev/null || warning "Erro ao executar migrations"
+
+# Verificar se dotenv está importado corretamente
+log "Verificando configuração do dotenv..."
+if ! grep -q "import dotenv" server/index.ts; then
+    log "Adicionando dotenv ao server/index.ts..."
+    sed -i '1i\import dotenv from "dotenv";\n// Carregar variáveis de ambiente ANTES de qualquer importação\ndotenv.config();\n' server/index.ts
+fi
 
 # Compilar aplicação
 log "Compilando aplicação..."
@@ -228,5 +241,59 @@ if command -v ufw >/dev/null 2>&1; then
     sudo ufw allow OpenSSH
     sudo ufw --force enable
 fi
+
+# Criar arquivo de teste de variáveis de ambiente
+log "Criando arquivo de teste de variáveis de ambiente..."
+cat > test-env.js << 'EOF'
+#!/usr/bin/env node
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const result = dotenv.config({ path: join(__dirname, '.env') });
+
+console.log('=== TESTE DE VARIÁVEIS DE AMBIENTE ===');
+if (result.error) {
+    console.error('❌ Erro ao carregar .env:', result.error);
+} else {
+    console.log('✅ Arquivo .env carregado com sucesso');
+}
+
+console.log('\n📋 Variáveis importantes:');
+console.log('NODE_ENV:', process.env.NODE_ENV || 'não definida');
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? '✅ Definida' : '❌ NÃO DEFINIDA');
+console.log('PORT:', process.env.PORT || 'não definida');
+console.log('SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ Definida' : '❌ NÃO DEFINIDA');
+
+if (process.env.DATABASE_URL) {
+    console.log('\n🔗 Testando formato da DATABASE_URL...');
+    const url = process.env.DATABASE_URL;
+    
+    if (url.startsWith('postgresql://')) {
+        console.log('✅ URL PostgreSQL válida');
+        try {
+            const dbUrl = new URL(url);
+            console.log('Host:', dbUrl.hostname);
+            console.log('Porta:', dbUrl.port || '5432');
+            console.log('Banco:', dbUrl.pathname.slice(1));
+            console.log('Usuário:', dbUrl.username);
+        } catch (e) {
+            console.error('❌ Erro ao parsear URL:', e.message);
+        }
+    } else {
+        console.error('❌ URL não é PostgreSQL válida');
+    }
+}
+console.log('\n=== FIM DO TESTE ===');
+EOF
+
+chmod +x test-env.js
+
+echo ""
+echo -e "${BLUE}Arquivo de teste criado: test-env.js${NC}"
+echo "• Para testar variáveis de ambiente: node test-env.js"
 
 log "Configuração concluída!"

@@ -13,6 +13,15 @@ chmod +x fix-database-url-error.sh
 ./fix-database-url-error.sh
 ```
 
+## Teste das Variáveis de Ambiente
+
+Para verificar se o dotenv está funcionando:
+
+```bash
+wget -O test-env.js https://raw.githubusercontent.com/Joelferreira98/SisFin/main/test-env.js
+node test-env.js
+```
+
 ## Solução Manual
 
 ### 1. Configurar PostgreSQL
@@ -29,7 +38,22 @@ sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE sisfindb TO sisfinuse
 sudo -u postgres psql -c "ALTER USER sisfinuser CREATEDB;"
 ```
 
-### 2. Criar arquivo .env
+### 2. Verificar se dotenv está instalado
+
+```bash
+npm install dotenv
+```
+
+### 3. Verificar se dotenv está importado no código
+
+Certifique-se de que o arquivo `server/index.ts` contém no início:
+
+```javascript
+import dotenv from "dotenv";
+dotenv.config();
+```
+
+### 4. Criar arquivo .env
 
 ```bash
 cat > .env << 'EOF'
@@ -44,13 +68,13 @@ NODE_TLS_REJECT_UNAUTHORIZED=0
 EOF
 ```
 
-### 3. Executar Migrations
+### 5. Executar Migrations
 
 ```bash
 npm run db:push
 ```
 
-### 4. Compilar e Iniciar
+### 6. Compilar e Iniciar
 
 ```bash
 npm run build
