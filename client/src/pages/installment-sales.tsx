@@ -65,6 +65,45 @@ export default function InstallmentSales() {
 
 
 
+  const resendLinkMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/installment-sales/${id}/regenerate-token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to resend link: ${errorText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Link Reenviado",
+        description: "O link de confirmação foi enviado novamente para o cliente via WhatsApp",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/installment-sales"] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Não autorizado",
+          description: "Você precisa estar logado para reenviar links",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Erro ao Reenviar Link",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const approveSaleMutation = useMutation({
     mutationFn: async ({ id, approved, notes }: { id: number; approved: boolean; notes: string }) => {
       const response = await fetch(`/api/installment-sales/${id}/approve`, {
@@ -222,6 +261,15 @@ export default function InstallmentSales() {
                           >
                             <Copy className="w-4 h-4 mr-1" />
                             Copiar Link
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => resendLinkMutation.mutate(sale.id)}
+                            disabled={resendLinkMutation.isPending}
+                          >
+                            <RefreshCw className={`w-4 h-4 mr-1 ${resendLinkMutation.isPending ? 'animate-spin' : ''}`} />
+                            Reenviar
                           </Button>
                           <Button
                             size="sm"

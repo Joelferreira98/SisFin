@@ -121,6 +121,7 @@ export function setupAuth(app: Express) {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          phone: user.phone,
           isAdmin: user.isAdmin
         });
       });
@@ -138,6 +139,7 @@ export function setupAuth(app: Express) {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      phone: user.phone,
       isAdmin: user.isAdmin
     });
   });
@@ -166,6 +168,7 @@ export function setupAuth(app: Express) {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      phone: user.phone,
       isAdmin: user.isAdmin
     });
   });

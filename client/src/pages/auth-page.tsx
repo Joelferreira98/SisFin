@@ -50,6 +50,7 @@ export default function AuthPage() {
       confirmPassword: "",
       firstName: "",
       lastName: "",
+      phone: "",
     },
   });
 
@@ -208,6 +209,21 @@ export default function AuthPage() {
                       {registerForm.formState.errors.email && (
                         <p className="text-sm text-red-600">
                           {registerForm.formState.errors.email.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Telefone</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        {...registerForm.register("phone")}
+                        placeholder="(11) 99999-9999"
+                      />
+                      {registerForm.formState.errors.phone && (
+                        <p className="text-sm text-red-600">
+                          {registerForm.formState.errors.phone.message}
                         </p>
                       )}
                     </div>
