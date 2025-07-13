@@ -98,7 +98,20 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser({
         ...req.body,
         password: hashedPassword,
+        isAdmin: false, // Novos usuários nunca são admin
       });
+
+      // Inscrever automaticamente no plano gratuito
+      const freePlan = await storage.getFreePlan();
+      if (freePlan) {
+        await storage.createUserSubscription({
+          userId: user.id,
+          planId: freePlan.id,
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 ano
+          isActive: true
+        });
+      }
 
       req.login(user, (err) => {
         if (err) return next(err);

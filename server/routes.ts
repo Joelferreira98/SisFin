@@ -10,6 +10,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   setupAuth(app);
 
+  // Plan limit routes
+  app.get('/api/plan-limits/clients', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const planLimit = await storage.checkPlanLimit(userId, 'maxClients');
+      res.json(planLimit);
+    } catch (error) {
+      console.error("Error checking plan limit:", error);
+      res.status(500).json({ message: "Failed to check plan limit" });
+    }
+  });
+
+  app.get('/api/plan-limits/receivables', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const planLimit = await storage.checkPlanLimit(userId, 'maxReceivables');
+      res.json(planLimit);
+    } catch (error) {
+      console.error("Error checking plan limit:", error);
+      res.status(500).json({ message: "Failed to check plan limit" });
+    }
+  });
+
+  app.get('/api/plan-limits/payables', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const planLimit = await storage.checkPlanLimit(userId, 'maxPayables');
+      res.json(planLimit);
+    } catch (error) {
+      console.error("Error checking plan limit:", error);
+      res.status(500).json({ message: "Failed to check plan limit" });
+    }
+  });
+
+  app.get('/api/plan-limits/whatsapp', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const planLimit = await storage.checkPlanLimit(userId, 'maxWhatsappMessages');
+      res.json(planLimit);
+    } catch (error) {
+      console.error("Error checking plan limit:", error);
+      res.status(500).json({ message: "Failed to check plan limit" });
+    }
+  });
+
   // Client routes
   app.get('/api/clients', isAuthenticated, async (req: any, res) => {
     try {
@@ -40,6 +85,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/clients', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      
+      // Verificar limitação do plano
+      const planLimit = await storage.checkPlanLimit(userId, 'maxClients');
+      if (!planLimit.canCreate) {
+        return res.status(403).json({ 
+          message: "Limite de clientes atingido para seu plano",
+          currentCount: planLimit.currentCount,
+          maxLimit: planLimit.maxLimit
+        });
+      }
+      
       const clientData = insertClientSchema.parse(req.body);
       const client = await storage.createClient(clientData, userId);
       res.status(201).json(client);
@@ -104,6 +160,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/receivables', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      
+      // Verificar limitação do plano
+      const planLimit = await storage.checkPlanLimit(userId, 'maxReceivables');
+      if (!planLimit.canCreate) {
+        return res.status(403).json({ 
+          message: "Limite de contas a receber atingido para seu plano",
+          currentCount: planLimit.currentCount,
+          maxLimit: planLimit.maxLimit
+        });
+      }
+      
       const receivableData = insertReceivableSchema.parse(req.body);
       const receivable = await storage.createReceivable(receivableData, userId);
       res.status(201).json(receivable);
@@ -168,6 +235,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/payables', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      
+      // Verificar limitação do plano
+      const planLimit = await storage.checkPlanLimit(userId, 'maxPayables');
+      if (!planLimit.canCreate) {
+        return res.status(403).json({ 
+          message: "Limite de contas a pagar atingido para seu plano",
+          currentCount: planLimit.currentCount,
+          maxLimit: planLimit.maxLimit
+        });
+      }
+      
       const payableData = insertPayableSchema.parse(req.body);
       const payable = await storage.createPayable(payableData, userId);
       res.status(201).json(payable);

@@ -61,6 +61,7 @@ export interface IStorage {
   // Plan operations
   getPlans(): Promise<Plan[]>;
   getPlan(id: number): Promise<Plan | undefined>;
+  getFreePlan(): Promise<Plan | undefined>;
   createPlan(plan: InsertPlan): Promise<Plan>;
   updatePlan(id: number, plan: Partial<InsertPlan>): Promise<Plan>;
   deletePlan(id: number): Promise<void>;
@@ -71,6 +72,11 @@ export interface IStorage {
   
   // Admin check
   isUserAdmin(userId: number): Promise<boolean>;
+  
+  // Plan limitations
+  getUserCurrentPlan(userId: number): Promise<Plan | undefined>;
+  checkPlanLimit(userId: number, limitType: 'maxClients' | 'maxReceivables' | 'maxPayables' | 'maxWhatsappMessages'): Promise<{ canCreate: boolean; currentCount: number; maxLimit: number }>;
+  getUserPlanUsage(userId: number): Promise<{ clients: number; receivables: number; payables: number; whatsappMessages: number }>;
   
   // Client operations
   getClients(userId: number): Promise<Client[]>;
@@ -226,6 +232,11 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(plans).where(eq(plans.isActive, true)).orderBy(plans.price);
   }
 
+  async getFreePlan(): Promise<Plan | undefined> {
+    const [plan] = await db.select().from(plans).where(eq(plans.price, 0)).limit(1);
+    return plan;
+  }
+
   async getPlan(id: number): Promise<Plan | undefined> {
     const [plan] = await db.select().from(plans).where(eq(plans.id, id));
     return plan;
@@ -283,6 +294,67 @@ export class DatabaseStorage implements IStorage {
   async isUserAdmin(userId: number): Promise<boolean> {
     const [user] = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, userId));
     return user?.isAdmin || false;
+  }
+
+  // Plan limitations
+  async getUserCurrentPlan(userId: number): Promise<Plan | undefined> {
+    const subscriptions = await this.getUserSubscriptions(userId);
+    const activeSubscription = subscriptions.find(sub => sub.isActive);
+    return activeSubscription?.plan;
+  }
+
+  async getUserPlanUsage(userId: number): Promise<{ clients: number; receivables: number; payables: number; whatsappMessages: number }> {
+    const [clientsCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(clients)
+      .where(eq(clients.userId, userId));
+
+    const [receivablesCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(receivables)
+      .where(eq(receivables.userId, userId));
+
+    const [payablesCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(payables)
+      .where(eq(payables.userId, userId));
+
+    const [whatsappCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(whatsappMessages)
+      .where(eq(whatsappMessages.userId, userId));
+
+    return {
+      clients: clientsCount.count,
+      receivables: receivablesCount.count,
+      payables: payablesCount.count,
+      whatsappMessages: whatsappCount.count,
+    };
+  }
+
+  async checkPlanLimit(userId: number, limitType: 'maxClients' | 'maxReceivables' | 'maxPayables' | 'maxWhatsappMessages'): Promise<{ canCreate: boolean; currentCount: number; maxLimit: number }> {
+    const plan = await this.getUserCurrentPlan(userId);
+    if (!plan) {
+      return { canCreate: false, currentCount: 0, maxLimit: 0 };
+    }
+
+    const usage = await this.getUserPlanUsage(userId);
+    
+    const limitMap = {
+      maxClients: { current: usage.clients, max: plan.maxClients },
+      maxReceivables: { current: usage.receivables, max: plan.maxReceivables },
+      maxPayables: { current: usage.payables, max: plan.maxPayables },
+      maxWhatsappMessages: { current: usage.whatsappMessages, max: plan.maxWhatsappMessages },
+    };
+
+    const limit = limitMap[limitType];
+    const canCreate = limit.max === -1 || limit.current < limit.max; // -1 means unlimited
+
+    return {
+      canCreate,
+      currentCount: limit.current,
+      maxLimit: limit.max,
+    };
   }
 
   // Client operations

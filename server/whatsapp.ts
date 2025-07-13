@@ -63,6 +63,13 @@ export class WhatsAppService {
   }
 
   async sendPaymentReminder(clientId: number, clientName: string, phoneNumber: string, amount: number, dueDate: Date, description: string, userId: number): Promise<boolean> {
+    // Verificar limitação do plano
+    const planLimit = await storage.checkPlanLimit(userId, 'maxWhatsappMessages');
+    if (!planLimit.canCreate) {
+      console.log(`WhatsApp message limit reached for user ${userId}: ${planLimit.currentCount}/${planLimit.maxLimit}`);
+      return false;
+    }
+
     const formattedAmount = amount.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -106,6 +113,13 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
   }
 
   async sendOverdueNotification(clientId: number, clientName: string, phoneNumber: string, amount: number, dueDate: Date, description: string, userId: number): Promise<boolean> {
+    // Verificar limitação do plano
+    const planLimit = await storage.checkPlanLimit(userId, 'maxWhatsappMessages');
+    if (!planLimit.canCreate) {
+      console.log(`WhatsApp message limit reached for user ${userId}: ${planLimit.currentCount}/${planLimit.maxLimit}`);
+      return false;
+    }
+
     const formattedAmount = amount.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -151,6 +165,13 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
   }
 
   async sendInstallmentConfirmationRequest(clientId: number, clientName: string, phoneNumber: string, description: string, totalAmount: number, installmentCount: number, confirmationToken: string, userId: number): Promise<boolean> {
+    // Verificar limitação do plano
+    const planLimit = await storage.checkPlanLimit(userId, 'maxWhatsappMessages');
+    if (!planLimit.canCreate) {
+      console.log(`WhatsApp message limit reached for user ${userId}: ${planLimit.currentCount}/${planLimit.maxLimit}`);
+      return false;
+    }
+
     const formattedAmount = totalAmount.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -204,6 +225,13 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
   }
 
   async sendSaleApprovalNotification(clientId: number, clientName: string, phoneNumber: string, description: string, totalAmount: number, installmentCount: number, userId: number): Promise<boolean> {
+    // Verificar limitação do plano
+    const planLimit = await storage.checkPlanLimit(userId, 'maxWhatsappMessages');
+    if (!planLimit.canCreate) {
+      console.log(`WhatsApp message limit reached for user ${userId}: ${planLimit.currentCount}/${planLimit.maxLimit}`);
+      return false;
+    }
+
     const formattedAmount = totalAmount.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -248,6 +276,13 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
   }
 
   async sendSaleRejectionNotification(clientId: number, clientName: string, phoneNumber: string, description: string, totalAmount: number, rejectionReason: string, confirmationToken: string, userId: number): Promise<boolean> {
+    // Verificar limitação do plano
+    const planLimit = await storage.checkPlanLimit(userId, 'maxWhatsappMessages');
+    if (!planLimit.canCreate) {
+      console.log(`WhatsApp message limit reached for user ${userId}: ${planLimit.currentCount}/${planLimit.maxLimit}`);
+      return false;
+    }
+
     const formattedAmount = totalAmount.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
