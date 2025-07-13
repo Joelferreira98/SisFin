@@ -29,6 +29,8 @@ import {
 import { format } from "date-fns";
 import { InstallmentSale, Client } from "@shared/schema";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import Header from "@/components/layout/header";
+import Navigation from "@/components/layout/navigation";
 
 interface InstallmentSaleWithClient extends InstallmentSale {
   client: Client;
@@ -166,13 +168,17 @@ export default function InstallmentSales() {
   const rejectedSales = sales?.filter((sale: InstallmentSaleWithClient) => sale.status === "rejected") || [];
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Confirmações de Vendas</h1>
-          <p className="text-gray-600">Gerencie confirmações e aprovações de vendas parceladas</p>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <Navigation />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Confirmações de Vendas</h1>
+            <p className="text-gray-600">Gerencie confirmações e aprovações de vendas parceladas</p>
+          </div>
         </div>
-      </div>
 
       <Tabs defaultValue="confirmed" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -542,6 +548,7 @@ export default function InstallmentSales() {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

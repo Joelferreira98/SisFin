@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import WhatsAppConfig from "@/components/whatsapp-config";
 import WhatsAppInstanceManager from "@/components/whatsapp-instance-manager";
 import { useAuth } from "@/hooks/useAuth";
+import Header from "@/components/layout/header";
+import Navigation from "@/components/layout/navigation";
 
 interface WhatsAppMessage {
   id: number;
@@ -92,20 +94,24 @@ export default function WhatsApp() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">WhatsApp</h1>
-          <p className="text-gray-600">Gerencie suas instâncias e mensagens WhatsApp</p>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <Navigation />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">WhatsApp</h1>
+            <p className="text-gray-600">Gerencie suas instâncias e mensagens WhatsApp</p>
+          </div>
+          <Button 
+            onClick={() => testConnectionMutation.mutate()}
+            disabled={testConnectionMutation.isPending}
+            variant="outline"
+          >
+            {testConnectionMutation.isPending ? 'Testando...' : 'Testar Conexão Global'}
+          </Button>
         </div>
-        <Button 
-          onClick={() => testConnectionMutation.mutate()}
-          disabled={testConnectionMutation.isPending}
-          variant="outline"
-        >
-          {testConnectionMutation.isPending ? 'Testando...' : 'Testar Conexão Global'}
-        </Button>
-      </div>
 
       <Tabs defaultValue="instances" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -188,6 +194,7 @@ export default function WhatsApp() {
           </TabsContent>
         )}
       </Tabs>
+      </div>
     </div>
   );
 }
