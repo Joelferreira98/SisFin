@@ -893,6 +893,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for manual reminder processing
+  app.post("/api/payment-reminders/test", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { reminderService } = await import("./reminder-service");
+      
+      // Force process reminders for this user
+      await reminderService.processUserReminders(userId);
+      
+      res.json({ message: "Lembretes processados com sucesso" });
+    } catch (error) {
+      console.error("Error processing reminders:", error);
+      res.status(500).json({ message: "Failed to process reminders" });
+    }
+  });
+
   // Plan routes
   app.get("/api/plans", isAuthenticated, async (req: any, res) => {
     try {

@@ -497,3 +497,14 @@ export function getWhatsAppService(): WhatsAppService | null {
 
   return whatsappService;
 }
+
+// Função auxiliar para enviar mensagem de texto
+export async function sendTextMessage(phoneNumber: string, message: string, instanceName?: string): Promise<boolean> {
+  const service = getWhatsAppService();
+  if (!service) {
+    console.warn('WhatsApp service not available');
+    return false;
+  }
+  
+  return await service.sendTextMessage(phoneNumber, message, instanceName);
+}

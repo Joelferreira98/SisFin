@@ -37,7 +37,7 @@ import {
   type InsertReminderLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, or } from "drizzle-orm";
+import { eq, and, desc, asc, sql, or, exists } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for custom auth)
@@ -905,8 +905,19 @@ export class DatabaseStorage implements IStorage {
 
   // Reminder Logs operations
   async getReminderLogs(userId: number): Promise<(ReminderLog & { reminder: PaymentReminder, receivable: Receivable, client: Client })[]> {
+    // Get reminder logs for user's reminders
+    const userReminders = await db.select({ id: paymentReminders.id })
+      .from(paymentReminders)
+      .where(eq(paymentReminders.userId, userId));
+    
+    if (userReminders.length === 0) {
+      return [];
+    }
+    
+    const reminderIds = userReminders.map(r => r.id);
+    
     return await db.query.reminderLogs.findMany({
-      where: eq(paymentReminders.userId, userId),
+      where: sql`${reminderLogs.reminderId} IN (${reminderIds.join(',')})`,
       with: {
         reminder: true,
         receivable: true,
