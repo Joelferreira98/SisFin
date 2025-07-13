@@ -102,6 +102,36 @@ npm run dev
 
 A aplicação estará disponível em `http://localhost:5000`
 
+### 🚀 Instalação VPS (Automática)
+
+Para deploy em servidor VPS com configuração completa:
+
+```bash
+# Download e execução do script completo
+wget -O vps-complete-fix.sh https://raw.githubusercontent.com/Joelferreira98/SisFin/main/vps-complete-fix.sh
+chmod +x vps-complete-fix.sh
+./vps-complete-fix.sh
+```
+
+**Recursos do script automatizado:**
+- ✅ Instalação completa de Node.js 20 e PostgreSQL
+- ✅ Configuração interativa de porta
+- ✅ **Configuração de domínio personalizado**
+- ✅ **Certificado SSL Let's Encrypt automático**
+- ✅ Configuração de PM2, Nginx e firewall
+- ✅ Criação de usuário administrador
+
+### 🔐 Configuração SSL
+
+Para adicionar SSL a uma instalação existente:
+
+```bash
+# Script para configurar SSL
+wget -O setup-ssl.sh https://raw.githubusercontent.com/Joelferreira98/SisFin/main/setup-ssl.sh
+chmod +x setup-ssl.sh
+./setup-ssl.sh
+```
+
 ## 🔧 Configuração
 
 ### Variáveis de Ambiente
@@ -121,6 +151,9 @@ EVOLUTION_INSTANCE_NAME="sua-instancia"
 # Aplicação
 NODE_ENV="development"
 PORT=5000
+
+# SSL (para resolução de problemas de certificado)
+NODE_TLS_REJECT_UNAUTHORIZED=0
 ```
 
 ### Configuração do WhatsApp

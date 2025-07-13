@@ -78,7 +78,41 @@ chmod +x vps-complete-fix.sh
 ./vps-complete-fix.sh
 ```
 
-### Configuração SSL/HTTPS
+**O script automatizado inclui:**
+- Instalação completa de Node.js 20 e PostgreSQL
+- Configuração interativa de porta (5000, 3000, 8080, 80, ou customizada)
+- **Configuração de domínio personalizado (opcional)**
+- **Certificado SSL Let's Encrypt automático (opcional)**
+- Configuração de PM2, Nginx e firewall
+- Criação de usuário administrador
+
+### Opções de Configuração Durante Instalação
+
+Durante a execução, você será questionado sobre:
+
+1. **Porta do servidor**: Escolha a porta de sua preferência
+2. **Configuração de domínio**:
+   - Usar apenas IP: `http://SEU-IP:PORTA`
+   - Domínio sem SSL: `http://seudominio.com`
+   - Domínio com SSL: `https://seudominio.com` (certificado automático)
+
+### Configuração SSL em Instalação Existente
+
+Se você já tem o SisFin instalado e quer adicionar SSL:
+
+```bash
+wget https://raw.githubusercontent.com/Joelferreira98/SisFin/main/setup-ssl.sh
+chmod +x setup-ssl.sh
+./setup-ssl.sh
+```
+
+**O script de SSL irá:**
+- Configurar certificado Let's Encrypt
+- Atualizar configuração do Nginx
+- Configurar renovação automática
+- Testar a configuração
+
+### Configuração Manual SSL/HTTPS
 ```bash
 # Instale Certbot
 sudo apt install certbot nginx

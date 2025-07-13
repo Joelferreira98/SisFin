@@ -224,6 +224,137 @@ if [[ $change_port == "y" || $change_port == "Y" ]]; then
     select_port
 fi
 
+# Configuração de domínio e SSL
+configure_domain_ssl() {
+    echo -e "${BLUE}Configuração de Domínio e SSL${NC}"
+    echo "1) Usar apenas IP (sem domínio)"
+    echo "2) Configurar domínio personalizado"
+    echo "3) Configurar domínio + SSL (Let's Encrypt)"
+    
+    read -p "Escolha (1-3): " domain_choice
+    
+    case $domain_choice in
+        1)
+            log "Usando configuração apenas com IP"
+            DOMAIN=""
+            ENABLE_SSL=false
+            ;;
+        2)
+            read -p "Digite seu domínio (ex: meusite.com): " DOMAIN
+            if [[ -z "$DOMAIN" ]]; then
+                warning "Domínio vazio. Usando apenas IP."
+                DOMAIN=""
+                ENABLE_SSL=false
+            else
+                log "Domínio configurado: $DOMAIN"
+                ENABLE_SSL=false
+            fi
+            ;;
+        3)
+            read -p "Digite seu domínio (ex: meusite.com): " DOMAIN
+            if [[ -z "$DOMAIN" ]]; then
+                warning "Domínio vazio. Usando apenas IP."
+                DOMAIN=""
+                ENABLE_SSL=false
+            else
+                log "Domínio configurado: $DOMAIN"
+                ENABLE_SSL=true
+            fi
+            ;;
+        *)
+            warning "Opção inválida. Usando configuração apenas com IP."
+            DOMAIN=""
+            ENABLE_SSL=false
+            ;;
+    esac
+}
+
+# Configurar certificado SSL
+setup_ssl() {
+    if [[ "$ENABLE_SSL" == true && -n "$DOMAIN" ]]; then
+        log "Configurando certificado SSL para $DOMAIN..."
+        
+        # Instalar certbot
+        sudo apt install -y certbot python3-certbot-nginx
+        
+        # Verificar se domínio aponta para o servidor
+        CURRENT_IP=$(curl -s ifconfig.me)
+        DOMAIN_IP=$(nslookup $DOMAIN | grep -A 2 "Non-authoritative answer:" | grep Address | tail -1 | cut -d' ' -f2)
+        
+        if [[ "$DOMAIN_IP" != "$CURRENT_IP" ]]; then
+            warning "ATENÇÃO: O domínio $DOMAIN não aponta para este servidor ($CURRENT_IP)"
+            warning "IP do domínio: $DOMAIN_IP"
+            warning "Configure o DNS antes de continuar."
+            read -p "Continuar mesmo assim? (y/n): " continue_ssl
+            if [[ $continue_ssl != "y" && $continue_ssl != "Y" ]]; then
+                log "Pulando configuração SSL"
+                return
+            fi
+        fi
+        
+        # Configurar SSL
+        if sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN; then
+            log "Certificado SSL configurado com sucesso!"
+            
+            # Configurar renovação automática
+            sudo crontab -l | { cat; echo "0 12 * * * /usr/bin/certbot renew --quiet"; } | sudo crontab -
+            
+            # Testar renovação
+            sudo certbot renew --dry-run
+            
+            info "Certificado SSL instalado e renovação automática configurada"
+        else
+            error "Falha ao configurar certificado SSL"
+        fi
+    fi
+}
+
+# Atualizar configuração do Nginx com domínio
+update_nginx_config() {
+    if [[ -n "$DOMAIN" ]]; then
+        log "Atualizando configuração do Nginx para domínio: $DOMAIN"
+        
+        sudo tee /etc/nginx/sites-available/sisfin > /dev/null << EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+    
+    location / {
+        proxy_pass http://localhost:${PORT:-5000};
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+EOF
+        
+        # Reiniciar Nginx
+        sudo nginx -t && sudo systemctl reload nginx
+        
+        # Atualizar .env com domínio
+        if [[ "$ENABLE_SSL" == true ]]; then
+            sed -i "s|base_url.*|base_url=https://$DOMAIN|" .env || echo "base_url=https://$DOMAIN" >> .env
+        else
+            sed -i "s|base_url.*|base_url=http://$DOMAIN|" .env || echo "base_url=http://$DOMAIN" >> .env
+        fi
+    fi
+}
+
+# Configurar domínio e SSL
+read -p "Deseja configurar domínio personalizado? (y/n): " setup_domain
+if [[ $setup_domain == "y" || $setup_domain == "Y" ]]; then
+    configure_domain_ssl
+    update_nginx_config
+    setup_ssl
+fi
+
 # Obter IP do servidor
 SERVER_IP=$(curl -s ifconfig.me || hostname -I | awk '{print $1}')
 
@@ -243,7 +374,21 @@ echo "         DEPLOY CONCLUÍDO COM SUCESSO!"
 echo "============================================"
 echo -e "${NC}"
 echo -e "${BLUE}Informações do Deploy:${NC}"
-echo "• Aplicação: http://$SERVER_IP:${PORT:-5000}"
+
+# Mostrar URL baseada na configuração
+if [[ -n "$DOMAIN" ]]; then
+    if [[ "$ENABLE_SSL" == true ]]; then
+        echo "• Aplicação: https://$DOMAIN"
+        echo "• SSL: Certificado Let's Encrypt configurado"
+        echo "• Renovação SSL: Automática (cron job configurado)"
+    else
+        echo "• Aplicação: http://$DOMAIN"
+        echo "• SSL: Não configurado"
+    fi
+else
+    echo "• Aplicação: http://$SERVER_IP:${PORT:-5000}"
+fi
+
 echo "• Banco: PostgreSQL rodando na porta 5432"
 echo "• PM2: Aplicação rodando em background"
 echo "• Nginx: Proxy reverso configurado"
@@ -255,11 +400,37 @@ echo "• Status: pm2 status"
 echo "• Reiniciar: pm2 restart sisfin"
 echo "• Parar: pm2 stop sisfin"
 echo "• Logs Nginx: sudo tail -f /var/log/nginx/access.log"
+
+# Comandos específicos para SSL
+if [[ "$ENABLE_SSL" == true ]]; then
+    echo "• Verificar SSL: sudo certbot certificates"
+    echo "• Renovar SSL: sudo certbot renew"
+    echo "• Testar renovação: sudo certbot renew --dry-run"
+fi
+
 echo ""
 echo -e "${BLUE}Próximos passos:${NC}"
-echo "1. Configure um domínio apontando para $SERVER_IP"
-echo "2. Configure SSL com: sudo certbot --nginx -d seu-dominio.com"
-echo "3. Configure Evolution API nas configurações do sistema"
-echo "4. Crie o primeiro usuário administrador"
+
+if [[ -z "$DOMAIN" ]]; then
+    echo "1. Configure um domínio apontando para $SERVER_IP"
+    echo "2. Execute novamente o script para configurar SSL"
+    echo "3. Configure Evolution API nas configurações do sistema"
+    echo "4. Crie o primeiro usuário administrador"
+else
+    echo "1. Configure Evolution API nas configurações do sistema"
+    echo "2. Crie o primeiro usuário administrador"
+    if [[ "$ENABLE_SSL" != true ]]; then
+        echo "3. Para SSL, execute: sudo certbot --nginx -d $DOMAIN"
+    fi
+fi
+
 echo ""
 echo -e "${GREEN}Deploy finalizado! Sua aplicação está pronta para uso.${NC}"
+
+# Resumo da configuração
+echo ""
+echo -e "${BLUE}Resumo da Configuração:${NC}"
+echo "• Porta: ${PORT:-5000}"
+echo "• Domínio: ${DOMAIN:-"Não configurado (usando IP)"}"
+echo "• SSL: ${ENABLE_SSL:-false}"
+echo "• URL de acesso: $(if [[ -n "$DOMAIN" ]]; then if [[ "$ENABLE_SSL" == true ]]; then echo "https://$DOMAIN"; else echo "http://$DOMAIN"; fi; else echo "http://$SERVER_IP:${PORT:-5000}"; fi)"

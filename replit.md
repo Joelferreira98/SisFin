@@ -687,3 +687,43 @@ The codebase is now professionally organized with clear, comprehensive documenta
 - **Production Ready**: Scripts include SSL configuration for VPS deployment
 
 The SSL certificate issue has been completely resolved, allowing proper communication with Evolution API and full WhatsApp integration functionality.
+
+## Latest Updates (July 13, 2025 - Enhanced VPS Installation with Domain and SSL Configuration)
+
+### Domain and SSL Configuration During Installation
+- **Interactive Domain Setup**: Added options during VPS installation to configure custom domains
+- **Automatic SSL Certificates**: Let's Encrypt SSL certificates configured automatically during installation
+- **Three Configuration Options**: 
+  1. IP only (http://server-ip:port)
+  2. Custom domain (http://domain.com)
+  3. Domain + SSL (https://domain.com)
+- **DNS Validation**: Automatic verification that domain points to server before SSL setup
+
+### New Installation Features
+- **Port Selection**: Interactive port selection (5000, 3000, 8080, 80, or custom)
+- **SSL Certificate Management**: Automatic Let's Encrypt installation and renewal configuration
+- **Nginx Configuration**: Automatic proxy configuration for custom domains
+- **DNS Verification**: Real-time DNS pointing verification before SSL setup
+- **Production Ready**: Complete HTTPS setup with automatic certificate renewal
+
+### Technical Implementation
+- **Enhanced vps-complete-fix.sh**: Added domain and SSL configuration functions
+- **New setup-ssl.sh**: Standalone script for adding SSL to existing installations
+- **Nginx Integration**: Automatic server block configuration for custom domains
+- **Certbot Integration**: Automatic SSL certificate generation and renewal setup
+- **Environment Updates**: Base URL automatically configured in application settings
+
+### Documentation Updates
+- **README.md**: Updated with VPS installation and SSL configuration instructions
+- **INSTALL.md**: Enhanced with domain and SSL setup procedures
+- **.env.example**: Updated with SSL configuration examples
+- **setup-ssl.sh**: Complete standalone SSL setup script for existing installations
+
+### User Experience Improvements
+- **One-Command Setup**: Single script handles complete production-ready deployment
+- **Interactive Configuration**: User-friendly prompts for domain and SSL setup
+- **Automatic Renewal**: SSL certificates automatically renewed via cron job
+- **Professional Deployment**: Complete HTTPS setup with proper security headers
+- **Flexible Options**: Support for IP-only, domain-only, or domain+SSL configurations
+
+The VPS installation system now provides complete domain and SSL configuration options, enabling users to deploy production-ready applications with HTTPS support in a single command execution.
