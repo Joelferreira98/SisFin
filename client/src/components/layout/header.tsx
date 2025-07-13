@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useSystemSettings } from "@/hooks/use-system-settings";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -10,6 +11,7 @@ import {
 
 export default function Header() {
   const { user, logoutMutation } = useAuth();
+  const { settings } = useSystemSettings();
 
   const handleLogout = () => {
     logoutMutation.mutate();
@@ -21,8 +23,16 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
-              <TrendingUp className="h-6 w-6 text-primary mr-3" />
-              <h1 className="text-xl font-bold text-gray-900">FinanceManager</h1>
+              {settings.systemLogo ? (
+                <img 
+                  src={settings.systemLogo} 
+                  alt="Logo" 
+                  className="h-6 w-6 mr-3" 
+                />
+              ) : (
+                <TrendingUp className="h-6 w-6 text-primary mr-3" />
+              )}
+              <h1 className="text-xl font-bold text-gray-900">{settings.systemName}</h1>
             </div>
           </div>
           

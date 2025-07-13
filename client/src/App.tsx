@@ -18,6 +18,7 @@ import ConfirmSale from "@/pages/confirm-sale";
 import PaymentReminders from "@/pages/payment-reminders";
 import Plans from "@/pages/plans";
 import NotFound from "@/pages/not-found";
+import { SystemHead } from "@/components/system-head";
 
 function Router() {
   return (
@@ -44,6 +45,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
+          <SystemHead />
           <Toaster />
           <Router />
         </TooltipProvider>

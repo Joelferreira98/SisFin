@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit, Plus, Settings, Globe, AlertCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trash2, Edit, Plus, Settings, Globe, AlertCircle, Palette, Upload } from "lucide-react";
 import { SystemSetting } from "@shared/schema";
 
 export default function SystemSettings() {
@@ -23,6 +24,29 @@ export default function SystemSettings() {
     value: "",
     description: "",
   });
+  const [brandingData, setBrandingData] = useState({
+    systemName: "",
+    systemLogo: "",
+    systemFavicon: "",
+    systemDescription: "",
+  });
+
+  // Load branding data from settings
+  useEffect(() => {
+    if (settings) {
+      const systemName = settings.find((s: SystemSetting) => s.key === 'system_name')?.value || '';
+      const systemLogo = settings.find((s: SystemSetting) => s.key === 'system_logo')?.value || '';
+      const systemFavicon = settings.find((s: SystemSetting) => s.key === 'system_favicon')?.value || '';
+      const systemDescription = settings.find((s: SystemSetting) => s.key === 'system_description')?.value || '';
+      
+      setBrandingData({
+        systemName,
+        systemLogo,
+        systemFavicon,
+        systemDescription,
+      });
+    }
+  }, [settings]);
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["/api/admin/settings"],
@@ -99,6 +123,60 @@ export default function SystemSettings() {
     },
   });
 
+  const saveBrandingMutation = useMutation({
+    mutationFn: async (data: typeof brandingData) => {
+      const promises = [];
+      
+      if (data.systemName) {
+        promises.push(apiRequest("POST", "/api/admin/settings", {
+          key: "system_name",
+          value: data.systemName,
+          description: "Nome do sistema exibido no cabeçalho"
+        }));
+      }
+      
+      if (data.systemLogo) {
+        promises.push(apiRequest("POST", "/api/admin/settings", {
+          key: "system_logo",
+          value: data.systemLogo,
+          description: "URL do logo do sistema"
+        }));
+      }
+      
+      if (data.systemFavicon) {
+        promises.push(apiRequest("POST", "/api/admin/settings", {
+          key: "system_favicon",
+          value: data.systemFavicon,
+          description: "URL do favicon do sistema"
+        }));
+      }
+      
+      if (data.systemDescription) {
+        promises.push(apiRequest("POST", "/api/admin/settings", {
+          key: "system_description",
+          value: data.systemDescription,
+          description: "Descrição do sistema"
+        }));
+      }
+      
+      await Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      toast({
+        title: "Personalização salva",
+        description: "As configurações de personalização foram salvas com sucesso",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao salvar personalização",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEditClick = (setting: SystemSetting) => {
     setSelectedSetting(setting);
     setFormData({
@@ -107,6 +185,10 @@ export default function SystemSettings() {
       description: setting.description || "",
     });
     setIsEditModalOpen(true);
+  };
+
+  const handleSaveBranding = () => {
+    saveBrandingMutation.mutate(brandingData);
   };
 
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -159,13 +241,100 @@ export default function SystemSettings() {
           <h2 className="text-2xl font-bold">Configurações do Sistema</h2>
           <p className="text-gray-600">Gerencie as configurações globais da aplicação</p>
         </div>
-        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Configuração
-            </Button>
-          </DialogTrigger>
+      </div>
+
+      <Tabs defaultValue="branding" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="branding" className="flex items-center gap-2">
+            <Palette className="h-4 w-4" />
+            Personalização
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Configurações Avançadas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="branding" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Palette className="w-5 h-5" />
+                <span>Personalização do Sistema</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="systemName">Nome do Sistema</Label>
+                  <Input
+                    id="systemName"
+                    value={brandingData.systemName}
+                    onChange={(e) => setBrandingData({ ...brandingData, systemName: e.target.value })}
+                    placeholder="Finance Manager"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Nome exibido no cabeçalho da aplicação</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="systemDescription">Descrição</Label>
+                  <Input
+                    id="systemDescription"
+                    value={brandingData.systemDescription}
+                    onChange={(e) => setBrandingData({ ...brandingData, systemDescription: e.target.value })}
+                    placeholder="Sistema de gestão financeira"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Descrição da aplicação</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="systemLogo">URL do Logo</Label>
+                  <Input
+                    id="systemLogo"
+                    value={brandingData.systemLogo}
+                    onChange={(e) => setBrandingData({ ...brandingData, systemLogo: e.target.value })}
+                    placeholder="https://exemplo.com/logo.png"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">URL do logo exibido no cabeçalho</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="systemFavicon">URL do Favicon</Label>
+                  <Input
+                    id="systemFavicon"
+                    value={brandingData.systemFavicon}
+                    onChange={(e) => setBrandingData({ ...brandingData, systemFavicon: e.target.value })}
+                    placeholder="https://exemplo.com/favicon.ico"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">URL do favicon da aplicação</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button 
+                  onClick={handleSaveBranding}
+                  disabled={saveBrandingMutation.isPending}
+                >
+                  {saveBrandingMutation.isPending ? "Salvando..." : "Salvar Personalização"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">Configurações Avançadas</h3>
+              <p className="text-gray-600">Configurações técnicas da aplicação</p>
+            </div>
+            <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Configuração
+                </Button>
+              </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Criar Nova Configuração</DialogTitle>
@@ -327,6 +496,8 @@ export default function SystemSettings() {
           </form>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
