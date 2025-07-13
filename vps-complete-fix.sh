@@ -1,209 +1,265 @@
 #!/bin/bash
 
-# Script definitivo para resolver todos os erros da VPS
-# Resolve: DATABASE_URL e erro do Vite config
+# SisFin - Script de Deploy VPS Completo
+# Versão: 2.0
+# Compatível com: Ubuntu 20.04+
 
-echo "🚀 Corrigindo todos os erros da VPS..."
+set -e  # Exit on any error
 
-# Verificar se estamos no diretório correto
-if [ ! -f "package.json" ]; then
-    echo "❌ Execute este script no diretório raiz do projeto SisFin"
+# Cores para output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Função para logging
+log() {
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+}
+
+error() {
+    echo -e "${RED}[ERROR] $1${NC}"
     exit 1
+}
+
+warning() {
+    echo -e "${YELLOW}[WARNING] $1${NC}"
+}
+
+info() {
+    echo -e "${BLUE}[INFO] $1${NC}"
+}
+
+# Banner
+echo -e "${BLUE}"
+echo "============================================"
+echo "       SisFin - Deploy VPS Automatizado"
+echo "============================================"
+echo -e "${NC}"
+
+# Verificar se está rodando como root
+if [[ $EUID -eq 0 ]]; then
+   error "Este script não deve ser executado como root. Use um usuário normal com sudo."
 fi
 
-# Parar processos existentes
-echo "🛑 Parando processos existentes..."
-pkill -f "node" 2>/dev/null || true
-pkill -f "npm" 2>/dev/null || true
-sleep 2
+# Função para verificar se comando existe
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
 
-# 1. CONFIGURAR NODE.JS
-echo "📋 Verificando Node.js..."
-NODE_VERSION=$(node --version)
-echo "Node.js version: $NODE_VERSION"
+# Atualizar sistema
+log "Atualizando sistema..."
+sudo apt update && sudo apt upgrade -y
 
-if [[ "$NODE_VERSION" < "v20" ]]; then
-    echo "⬆️ Atualizando Node.js para v20..."
+# Instalar dependências básicas
+log "Instalando dependências básicas..."
+sudo apt install -y curl wget git nginx postgresql postgresql-contrib build-essential
+
+# Instalar Node.js 20
+log "Instalando Node.js 20..."
+if ! command_exists node || [[ $(node --version | cut -d'.' -f1 | cut -d'v' -f2) -lt 20 ]]; then
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     sudo apt-get install -y nodejs
 fi
 
-# 2. CONFIGURAR POSTGRESQL
-echo "🗄️ Configurando PostgreSQL..."
-sudo apt update
-sudo apt install -y postgresql postgresql-contrib
+# Verificar versões
+log "Verificando versões instaladas..."
+node --version
+npm --version
+psql --version
+
+# Configurar PostgreSQL
+log "Configurando PostgreSQL..."
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
-sleep 3
 
-# Configurar banco e usuário
-sudo -u postgres psql -c "DROP DATABASE IF EXISTS financedb;" 2>/dev/null || true
-sudo -u postgres psql -c "DROP USER IF EXISTS financeuser;" 2>/dev/null || true
-sudo -u postgres psql -c "CREATE DATABASE financedb;"
-sudo -u postgres psql -c "CREATE USER financeuser WITH PASSWORD 'financepass123';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE financedb TO financeuser;"
-sudo -u postgres psql -c "ALTER DATABASE financedb OWNER TO financeuser;"
+# Criar banco e usuário
+log "Criando banco de dados e usuário..."
+sudo -u postgres createdb sisfindb 2>/dev/null || info "Banco sisfindb já existe"
+sudo -u postgres psql -c "CREATE USER sisfinuser WITH PASSWORD 'sisfinpass123';" 2>/dev/null || info "Usuário sisfinuser já existe"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE sisfindb TO sisfinuser;" 2>/dev/null || info "Permissões já concedidas"
 
-# Configurar autenticação
-for version in 12 13 14 15 16; do
-    PG_CONFIG="/etc/postgresql/$version/main/pg_hba.conf"
-    if [ -f "$PG_CONFIG" ]; then
-        sudo cp "$PG_CONFIG" "$PG_CONFIG.backup"
-        sudo sed -i 's/local   all             all                                     peer/local   all             all                                     trust/' "$PG_CONFIG"
-        sudo systemctl restart postgresql
-        sleep 3
-        break
-    fi
-done
+# Configurar PostgreSQL para aceitar conexões
+log "Configurando PostgreSQL para aceitar conexões..."
+PG_VERSION=$(psql --version | grep -oP '\d+\.\d+' | head -1)
+PG_CONFIG_DIR="/etc/postgresql/${PG_VERSION}/main"
 
-# 3. CRIAR ARQUIVO .ENV
-echo "📝 Criando arquivo .env..."
-cat > .env << 'EOF'
-DATABASE_URL=postgresql://financeuser:financepass123@localhost:5432/financedb
-SESSION_SECRET=chave-secreta-super-segura-de-32-caracteres-para-producao-vps-2024
-EVOLUTION_API_URL=https://sua-evolution-api-url.com
-EVOLUTION_API_KEY=sua-chave-da-evolution-api-aqui
-EVOLUTION_INSTANCE_NAME=instancia-padrao-sistema
-NODE_ENV=development
+if [ -d "$PG_CONFIG_DIR" ]; then
+    sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" "$PG_CONFIG_DIR/postgresql.conf"
+    sudo systemctl restart postgresql
+fi
+
+# Clone do repositório
+log "Clonando repositório SisFin..."
+if [ -d "SisFin" ]; then
+    cd SisFin
+    git pull origin main
+else
+    git clone https://github.com/Joelferreira98/SisFin.git
+    cd SisFin
+fi
+
+# Instalar dependências do projeto
+log "Instalando dependências do projeto..."
+npm install
+
+# Configurar arquivo .env
+log "Configurando arquivo .env..."
+cat > .env << EOF
+# SisFin - Configuração de Produção
+NODE_ENV=production
+DATABASE_URL="postgresql://sisfinuser:sisfinpass123@localhost:5432/sisfindb"
+SESSION_SECRET="$(openssl rand -base64 32)"
 PORT=5000
-HOST=0.0.0.0
-VITE_APP_ENV=development
+
+# Evolution API (configure conforme necessário)
+EVOLUTION_API_URL="https://sua-evolution-api.com"
+EVOLUTION_API_KEY="sua-chave-api"
+EVOLUTION_INSTANCE_NAME="sua-instancia"
+
+# SSL
 NODE_TLS_REJECT_UNAUTHORIZED=0
 EOF
 
-# 4. CONFIGURAR DEPENDÊNCIAS
-echo "📦 Configurando dependências..."
-npm cache clean --force
-rm -rf node_modules package-lock.json
-npm install
+# Build da aplicação
+log "Fazendo build da aplicação..."
+npm run build
 
-# 5. TESTAR CONEXÃO COM BANCO
-echo "🔍 Testando conexão com banco..."
-if psql -U financeuser -h localhost -d financedb -c "SELECT 1;" 2>/dev/null; then
-    echo "✅ Conexão com banco funcionando!"
-else
-    echo "❌ Erro na conexão com banco"
+# Aplicar schema do banco
+log "Aplicando schema do banco de dados..."
+npm run db:push
+
+# Instalar PM2
+log "Instalando PM2..."
+if ! command_exists pm2; then
+    sudo npm install -g pm2
 fi
 
-# 6. CRIAR SCRIPT DE INICIALIZAÇÃO
-echo "📄 Criando script de inicialização..."
-cat > start-app-vps.sh << 'EOF'
-#!/bin/bash
+# Configurar PM2
+log "Configurando PM2..."
+pm2 stop sisfin 2>/dev/null || true
+pm2 delete sisfin 2>/dev/null || true
+pm2 start npm --name "sisfin" -- start
+pm2 save
+pm2 startup | grep -v "PM2" | sudo bash || true
 
-echo "🚀 Iniciando aplicação SisFin na VPS..."
+# Configurar Nginx
+log "Configurando Nginx..."
+sudo tee /etc/nginx/sites-available/sisfin > /dev/null << EOF
+server {
+    listen 80;
+    server_name _;
+    
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+EOF
 
-# Solicitar porta se não foi especificada
-if [ -z "$1" ]; then
-    echo "🔧 Escolha a porta para a aplicação:"
+# Ativar site
+sudo ln -sf /etc/nginx/sites-available/sisfin /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl restart nginx
+
+# Configurar firewall
+log "Configurando firewall..."
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw --force enable
+
+# Função para seleção de porta
+select_port() {
+    echo -e "${BLUE}Selecione uma porta para a aplicação:${NC}"
     echo "1) 5000 (padrão)"
     echo "2) 3000"
     echo "3) 8080"
-    echo "4) 80 (requer sudo)"
-    echo "5) Personalizada"
-    echo ""
-    read -p "Escolha uma opção (1-5): " option
+    echo "4) 80"
+    echo "5) Porta customizada"
     
-    case $option in
+    read -p "Escolha (1-5): " choice
+    
+    case $choice in
         1) PORT=5000 ;;
         2) PORT=3000 ;;
         3) PORT=8080 ;;
         4) PORT=80 ;;
         5) 
-            read -p "Digite a porta desejada: " PORT
-            if ! [[ "$PORT" =~ ^[0-9]+$ ]] || [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
-                echo "❌ Porta inválida. Usando porta padrão 5000"
-                PORT=5000
-            fi
+            read -p "Digite a porta customizada: " PORT
             ;;
         *) 
-            echo "❌ Opção inválida. Usando porta padrão 5000"
-            PORT=5000
+            warning "Opção inválida. Usando porta padrão 5000."
+            PORT=5000 
             ;;
     esac
+    
+    # Atualizar .env com a porta selecionada
+    sed -i "s/PORT=5000/PORT=$PORT/" .env
+    
+    # Atualizar configuração do Nginx
+    sudo sed -i "s/proxy_pass http:\/\/localhost:5000/proxy_pass http:\/\/localhost:$PORT/" /etc/nginx/sites-available/sisfin
+    sudo systemctl restart nginx
+    
+    # Reiniciar aplicação
+    pm2 restart sisfin
+    
+    log "Porta configurada para: $PORT"
+}
+
+# Perguntar se quer mudar a porta
+read -p "Deseja alterar a porta padrão (5000)? (y/n): " change_port
+if [[ $change_port == "y" || $change_port == "Y" ]]; then
+    select_port
+fi
+
+# Obter IP do servidor
+SERVER_IP=$(curl -s ifconfig.me || hostname -I | awk '{print $1}')
+
+# Teste final
+log "Testando aplicação..."
+sleep 5
+if curl -s http://localhost:${PORT:-5000} > /dev/null; then
+    echo -e "${GREEN}✅ Aplicação funcionando corretamente!${NC}"
 else
-    PORT=$1
+    warning "Aplicação pode não estar respondendo. Verifique os logs."
 fi
 
-# Configurar variáveis de ambiente
-export DATABASE_URL="postgresql://financeuser:financepass123@localhost:5432/financedb"
-export SESSION_SECRET="chave-secreta-super-segura-de-32-caracteres-para-producao-vps-2024"
-export NODE_ENV="development"
-export VITE_APP_ENV="development"
-export PORT=$PORT
-export HOST="0.0.0.0"
-export NODE_TLS_REJECT_UNAUTHORIZED=0
-
-# Verificar se a porta está disponível
-if command -v netstat > /dev/null 2>&1; then
-    if netstat -tuln | grep -q ":$PORT "; then
-        echo "⚠️ Porta $PORT já está em uso. Tente outra porta."
-        exit 1
-    fi
-fi
-
-# Verificar PostgreSQL
-if ! systemctl is-active --quiet postgresql; then
-    echo "🗄️ Iniciando PostgreSQL..."
-    sudo systemctl start postgresql
-    sleep 3
-fi
-
-# Atualizar arquivo .env com a porta escolhida
-sed -i "s/PORT=.*/PORT=$PORT/" .env 2>/dev/null || echo "PORT=$PORT" >> .env
-
-# Mostrar informações
-echo "✅ Variáveis configuradas:"
-echo "DATABASE_URL: $DATABASE_URL"
-echo "NODE_ENV: $NODE_ENV"
-echo "PORT: $PORT"
+# Instruções finais
+echo -e "${GREEN}"
+echo "============================================"
+echo "         DEPLOY CONCLUÍDO COM SUCESSO!"
+echo "============================================"
+echo -e "${NC}"
+echo -e "${BLUE}Informações do Deploy:${NC}"
+echo "• Aplicação: http://$SERVER_IP:${PORT:-5000}"
+echo "• Banco: PostgreSQL rodando na porta 5432"
+echo "• PM2: Aplicação rodando em background"
+echo "• Nginx: Proxy reverso configurado"
+echo "• Firewall: Portas 22, 80, 443 liberadas"
 echo ""
-echo "🎯 Acesso: http://$(curl -s ifconfig.me 2>/dev/null || echo "seu-ip"):$PORT"
-echo "🔑 Usuário: Joel | Senha: 123456"
+echo -e "${YELLOW}Comandos úteis:${NC}"
+echo "• Ver logs: pm2 logs sisfin"
+echo "• Status: pm2 status"
+echo "• Reiniciar: pm2 restart sisfin"
+echo "• Parar: pm2 stop sisfin"
+echo "• Logs Nginx: sudo tail -f /var/log/nginx/access.log"
 echo ""
-echo "🔄 Para parar: Ctrl+C"
-echo "💡 Para usar outra porta: ./start-app-vps.sh PORTA"
+echo -e "${BLUE}Próximos passos:${NC}"
+echo "1. Configure um domínio apontando para $SERVER_IP"
+echo "2. Configure SSL com: sudo certbot --nginx -d seu-dominio.com"
+echo "3. Configure Evolution API nas configurações do sistema"
+echo "4. Crie o primeiro usuário administrador"
 echo ""
-
-# Executar aplicação
-npm run dev
-EOF
-
-chmod +x start-app-vps.sh
-
-# 7. APLICAR SCHEMA DO BANCO
-echo "🗄️ Aplicando schema do banco..."
-export DATABASE_URL="postgresql://financeuser:financepass123@localhost:5432/financedb"
-npx drizzle-kit push --force 2>/dev/null || echo "⚠️ Schema já aplicado"
-
-# 8. TESTAR APLICAÇÃO
-echo "🧪 Testando aplicação..."
-export DATABASE_URL="postgresql://financeuser:financepass123@localhost:5432/financedb"
-export NODE_ENV="development"
-
-timeout 15s npm run dev > test_output.log 2>&1 &
-TEST_PID=$!
-sleep 10
-
-if kill -0 $TEST_PID 2>/dev/null; then
-    echo "✅ Aplicação iniciou com sucesso!"
-    kill $TEST_PID 2>/dev/null
-else
-    echo "❌ Problema na aplicação. Verificando logs..."
-    cat test_output.log | tail -10
-fi
-
-# Limpar
-rm -f test_output.log
-
-echo ""
-echo "🎉 Configuração concluída!"
-echo ""
-echo "📋 Para iniciar:"
-echo "./start-app-vps.sh"
-echo ""
-echo "📞 Em caso de problemas:"
-echo "- Verifique PostgreSQL: sudo systemctl status postgresql"
-echo "- Verifique logs: sudo journalctl -u postgresql -f"
-echo "- Teste conexão: psql -U financeuser -h localhost -d financedb -c 'SELECT 1;'"
-echo ""
-echo "✅ Pronto para usar!"
+echo -e "${GREEN}Deploy finalizado! Sua aplicação está pronta para uso.${NC}"

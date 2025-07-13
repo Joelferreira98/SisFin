@@ -4,31 +4,27 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "5000:5000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://financeuser:financepass@db:5432/financedb
+      - DATABASE_URL=postgresql://sisfinuser:sisfinpass@db:5432/sisfindb
       - SESSION_SECRET=your-super-secret-session-key-here
       - EVOLUTION_API_URL=${EVOLUTION_API_URL}
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
       - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME}
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
     depends_on:
       - db
     restart: unless-stopped
-    volumes:
-      - ./uploads:/app/uploads
 
   db:
-    image: postgres:15
+    image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=financedb
-      - POSTGRES_USER=financeuser
-      - POSTGRES_PASSWORD=financepass
-    ports:
-      - "5432:5432"
+      - POSTGRES_DB=sisfindb
+      - POSTGRES_USER=sisfinuser
+      - POSTGRES_PASSWORD=sisfinpass
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
 
 volumes:

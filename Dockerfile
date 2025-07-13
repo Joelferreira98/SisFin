@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -11,14 +11,11 @@ RUN npm ci --only=production
 # Copy source code
 COPY . .
 
-# Create uploads directory for file uploads
-RUN mkdir -p uploads
-
 # Build the application
 RUN npm run build
 
 # Expose port
-EXPOSE 3000
+EXPOSE 5000
 
 # Start the application
 CMD ["npm", "start"]
