@@ -75,27 +75,27 @@ else
     exit 1
 fi
 
-# 4. Verificar MySQL
-echo -e "\n4. Verificando MySQL..."
-if command -v mysql &> /dev/null; then
-    MYSQL_VERSION=$(mysql --version)
-    print_success "MySQL instalado: $MYSQL_VERSION"
+# 4. Verificar PostgreSQL
+echo -e "\n4. Verificando PostgreSQL..."
+if command -v psql &> /dev/null; then
+    PG_VERSION=$(psql --version)
+    print_success "PostgreSQL instalado: $PG_VERSION"
 else
-    print_warning "MySQL não está instalado"
-    print_info "Instalando MySQL..."
+    print_warning "PostgreSQL não está instalado"
+    print_info "Instalando PostgreSQL..."
     
-    # Instalar MySQL
+    # Instalar PostgreSQL
     sudo apt update
-    sudo apt install -y mysql-server
+    sudo apt install -y postgresql postgresql-contrib
     
-    # Iniciar MySQL
-    sudo systemctl start mysql
-    sudo systemctl enable mysql
+    # Iniciar PostgreSQL
+    sudo systemctl start postgresql
+    sudo systemctl enable postgresql
     
-    if command -v mysql &> /dev/null; then
-        print_success "MySQL instalado com sucesso"
+    if command -v psql &> /dev/null; then
+        print_success "PostgreSQL instalado com sucesso"
     else
-        print_error "Falha ao instalar MySQL"
+        print_error "Falha ao instalar PostgreSQL"
         print_info "Você pode usar SQLite como alternativa"
     fi
 fi
@@ -110,7 +110,7 @@ if [ ! -f ".env" ]; then
         print_warning ".env.example não encontrado, criando .env básico"
         cat > .env << EOF
 # Configuração básica para desenvolvimento local
-DATABASE_URL=mysql://root:@localhost:3306/financedb
+DATABASE_URL=postgresql://financeuser:financepass@localhost:5432/financedb
 SESSION_SECRET=$(openssl rand -base64 32)
 NODE_ENV=development
 
@@ -129,21 +129,27 @@ fi
 echo -e "\n6. Configurando banco de dados..."
 print_info "Criando banco de dados..."
 
-# Verificar se MySQL está rodando
-if systemctl is-active --quiet mysql; then
-    print_success "MySQL está rodando"
+# Verificar se PostgreSQL está rodando
+if systemctl is-active --quiet postgresql; then
+    print_success "PostgreSQL está rodando"
     
     # Criar banco de dados
-    mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS financedb;" 2>/dev/null || {
-        print_warning "Tentando criar banco sem senha..."
-        mysql -u root -e "CREATE DATABASE IF NOT EXISTS financedb;" 2>/dev/null || {
-            print_error "Não foi possível criar o banco de dados"
-            print_info "Execute manualmente: mysql -u root -p -e \"CREATE DATABASE financedb;\""
-        }
+    sudo -u postgres createdb financedb 2>/dev/null || {
+        print_warning "Banco financedb pode já existir"
+        print_info "Isso é normal se você já executou o script antes"
     }
+    
+    # Criar usuário se necessário
+    sudo -u postgres psql -c "CREATE USER financeuser WITH PASSWORD 'financepass';" 2>/dev/null || {
+        print_warning "Usuário financeuser pode já existir"
+    }
+    
+    # Dar permissões
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE financedb TO financeuser;" 2>/dev/null
+    
 else
-    print_error "MySQL não está rodando"
-    print_info "Inicie o MySQL: sudo systemctl start mysql"
+    print_error "PostgreSQL não está rodando"
+    print_info "Inicie o PostgreSQL: sudo systemctl start postgresql"
 fi
 
 # 7. Aplicar schema do banco
@@ -171,16 +177,18 @@ cat > start-local.sh << 'EOF'
 
 echo "🚀 Iniciando SisFin localmente..."
 
-# Verificar se MySQL está rodando
-if ! systemctl is-active --quiet mysql; then
-    echo "⚠️  Iniciando MySQL..."
-    sudo systemctl start mysql
+# Verificar se PostgreSQL está rodando
+if ! systemctl is-active --quiet postgresql; then
+    echo "⚠️  Iniciando PostgreSQL..."
+    sudo systemctl start postgresql
 fi
 
 # Verificar se banco existe
-if ! mysql -u root -e "USE financedb;" 2>/dev/null; then
+if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw financedb; then
     echo "⚠️  Criando banco de dados..."
-    mysql -u root -e "CREATE DATABASE IF NOT EXISTS financedb;"
+    sudo -u postgres createdb financedb
+    sudo -u postgres psql -c "CREATE USER financeuser WITH PASSWORD 'financepass';" 2>/dev/null || true
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE financedb TO financeuser;"
 fi
 
 # Aplicar schema se necessário
@@ -202,7 +210,7 @@ echo "================================"
 
 echo -e "\n📋 Próximos passos:"
 echo "1. Configure suas credenciais Evolution API no arquivo .env"
-echo "2. Configure a senha do MySQL se necessário"
+echo "2. Configure a senha do PostgreSQL se necessário"
 echo "3. Execute: ./start-local.sh"
 echo "4. Ou execute manualmente: npm run dev"
 echo "5. Acesse: http://localhost:5000"
