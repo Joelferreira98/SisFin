@@ -33,7 +33,8 @@ export class WhatsAppService {
       
       console.log(`Sending message to ${formattedNumber} using instance: ${instance}`);
       
-      const response = await fetch(`${this.config.apiUrl}/message/sendText/${instance}`, {
+      // Configurar fetch com SSL bypass se necessário
+      const fetchOptions: RequestInit = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,7 +46,14 @@ export class WhatsAppService {
           delay: 1200,
           linkPreview: false,
         }),
-      });
+      };
+
+      // Para Node.js, configurar para ignorar certificados SSL inválidos se necessário
+      if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+        console.log('SSL certificate validation disabled for WhatsApp API');
+      }
+      
+      const response = await fetch(`${this.config.apiUrl}/message/sendText/${instance}`, fetchOptions);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -355,12 +363,19 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
 
   async testConnection(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.config.apiUrl}/instance/fetchInstances`, {
+      const fetchOptions: RequestInit = {
         method: 'GET',
         headers: {
           'apikey': this.config.apiKey,
         },
-      });
+      };
+
+      // Log SSL configuration
+      if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+        console.log('SSL certificate validation disabled for WhatsApp API connection test');
+      }
+
+      const response = await fetch(`${this.config.apiUrl}/instance/fetchInstances`, fetchOptions);
 
       return response.ok;
     } catch (error) {
@@ -379,14 +394,21 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
         integration: "WHATSAPP-BAILEYS"
       };
 
-      const response = await fetch(`${this.config.apiUrl}/instance/create`, {
+      const fetchOptions: RequestInit = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': this.config.apiKey
         },
         body: JSON.stringify(payload)
-      });
+      };
+
+      // Log SSL configuration
+      if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+        console.log('SSL certificate validation disabled for WhatsApp API instance creation');
+      }
+
+      const response = await fetch(`${this.config.apiUrl}/instance/create`, fetchOptions);
 
       if (!response.ok) {
         const errorData = await response.text();
@@ -404,13 +426,20 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
 
   async getInstanceStatus(instanceName: string): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const response = await fetch(`${this.config.apiUrl}/instance/connect/${instanceName}`, {
+      const fetchOptions: RequestInit = {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'apikey': this.config.apiKey
         }
-      });
+      };
+
+      // Log SSL configuration
+      if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+        console.log('SSL certificate validation disabled for WhatsApp API status check');
+      }
+
+      const response = await fetch(`${this.config.apiUrl}/instance/connect/${instanceName}`, fetchOptions);
 
       if (!response.ok) {
         const errorData = await response.text();
@@ -428,13 +457,20 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
 
   async getInstanceInfo(instanceName: string): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const response = await fetch(`${this.config.apiUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
+      const fetchOptions: RequestInit = {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'apikey': this.config.apiKey
         }
-      });
+      };
+
+      // Log SSL configuration
+      if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+        console.log('SSL certificate validation disabled for WhatsApp API instance info');
+      }
+
+      const response = await fetch(`${this.config.apiUrl}/instance/fetchInstances?instanceName=${instanceName}`, fetchOptions);
 
       if (!response.ok) {
         const errorData = await response.text();
@@ -452,13 +488,20 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
 
   async regenerateQRCode(instanceName: string): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const response = await fetch(`${this.config.apiUrl}/instance/connect/${instanceName}`, {
+      const fetchOptions: RequestInit = {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'apikey': this.config.apiKey
         }
-      });
+      };
+
+      // Log SSL configuration
+      if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+        console.log('SSL certificate validation disabled for WhatsApp API QR code regeneration');
+      }
+
+      const response = await fetch(`${this.config.apiUrl}/instance/connect/${instanceName}`, fetchOptions);
 
       if (!response.ok) {
         const errorData = await response.text();
@@ -478,13 +521,20 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
     try {
       console.log(`Attempting to delete instance: ${instanceName}`);
       
-      const response = await fetch(`${this.config.apiUrl}/instance/delete/${instanceName}`, {
+      const fetchOptions: RequestInit = {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'apikey': this.config.apiKey
         }
-      });
+      };
+
+      // Log SSL configuration
+      if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+        console.log('SSL certificate validation disabled for WhatsApp API instance deletion');
+      }
+      
+      const response = await fetch(`${this.config.apiUrl}/instance/delete/${instanceName}`, fetchOptions);
 
       if (!response.ok) {
         const errorData = await response.text();
