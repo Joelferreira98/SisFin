@@ -68,6 +68,7 @@ NODE_ENV=development
 PORT=5000
 HOST=0.0.0.0
 VITE_APP_ENV=development
+NODE_TLS_REJECT_UNAUTHORIZED=0
 EOF
 
 # 4. CONFIGURAR DEPENDÊNCIAS
@@ -91,11 +92,54 @@ cat > start-app-vps.sh << 'EOF'
 
 echo "🚀 Iniciando aplicação SisFin na VPS..."
 
+# Solicitar porta se não foi especificada
+if [ -z "$1" ]; then
+    echo "🔧 Escolha a porta para a aplicação:"
+    echo "1) 5000 (padrão)"
+    echo "2) 3000"
+    echo "3) 8080"
+    echo "4) 80 (requer sudo)"
+    echo "5) Personalizada"
+    echo ""
+    read -p "Escolha uma opção (1-5): " option
+    
+    case $option in
+        1) PORT=5000 ;;
+        2) PORT=3000 ;;
+        3) PORT=8080 ;;
+        4) PORT=80 ;;
+        5) 
+            read -p "Digite a porta desejada: " PORT
+            if ! [[ "$PORT" =~ ^[0-9]+$ ]] || [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+                echo "❌ Porta inválida. Usando porta padrão 5000"
+                PORT=5000
+            fi
+            ;;
+        *) 
+            echo "❌ Opção inválida. Usando porta padrão 5000"
+            PORT=5000
+            ;;
+    esac
+else
+    PORT=$1
+fi
+
 # Configurar variáveis de ambiente
 export DATABASE_URL="postgresql://financeuser:financepass123@localhost:5432/financedb"
 export SESSION_SECRET="chave-secreta-super-segura-de-32-caracteres-para-producao-vps-2024"
 export NODE_ENV="development"
 export VITE_APP_ENV="development"
+export PORT=$PORT
+export HOST="0.0.0.0"
+export NODE_TLS_REJECT_UNAUTHORIZED=0
+
+# Verificar se a porta está disponível
+if command -v netstat > /dev/null 2>&1; then
+    if netstat -tuln | grep -q ":$PORT "; then
+        echo "⚠️ Porta $PORT já está em uso. Tente outra porta."
+        exit 1
+    fi
+fi
 
 # Verificar PostgreSQL
 if ! systemctl is-active --quiet postgresql; then
@@ -104,15 +148,20 @@ if ! systemctl is-active --quiet postgresql; then
     sleep 3
 fi
 
+# Atualizar arquivo .env com a porta escolhida
+sed -i "s/PORT=.*/PORT=$PORT/" .env 2>/dev/null || echo "PORT=$PORT" >> .env
+
 # Mostrar informações
 echo "✅ Variáveis configuradas:"
 echo "DATABASE_URL: $DATABASE_URL"
 echo "NODE_ENV: $NODE_ENV"
+echo "PORT: $PORT"
 echo ""
-echo "🎯 Acesso: http://$(curl -s ifconfig.me 2>/dev/null || echo "seu-ip"):5000"
+echo "🎯 Acesso: http://$(curl -s ifconfig.me 2>/dev/null || echo "seu-ip"):$PORT"
 echo "🔑 Usuário: Joel | Senha: 123456"
 echo ""
 echo "🔄 Para parar: Ctrl+C"
+echo "💡 Para usar outra porta: ./start-app-vps.sh PORTA"
 echo ""
 
 # Executar aplicação

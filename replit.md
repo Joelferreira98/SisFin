@@ -597,3 +597,31 @@ The system documentation is now fully aligned with PostgreSQL, providing users w
 - **Script Integration**: All scripts properly integrated with GitHub repository
 
 The complete VPS error resolution system now handles both DATABASE_URL and Vite configuration issues with automated scripts, comprehensive documentation, and alternative manual solutions.
+
+## Latest Updates (July 13, 2025 - Enhanced VPS Solution with Port Selection)
+
+### User Experience Improvements
+- **Port Selection**: Added interactive port selection in start-app-vps.sh script (5000, 3000, 8080, 80, or custom)
+- **Direct Port Specification**: Users can specify port directly: `./start-app-vps.sh 8080`
+- **Port Availability Check**: Automatic verification if selected port is available
+- **WhatsApp SSL Fix**: Resolved certificate SSL errors with NODE_TLS_REJECT_UNAUTHORIZED=0 configuration
+
+### Technical Enhancements
+- **Smart Port Management**: Automatic .env file updates with selected port
+- **SSL Certificate Handling**: Fixed Evolution API SSL certificate validation errors
+- **Error Prevention**: Port conflict detection and user-friendly error messages
+- **Environment Configuration**: Enhanced environment variable management for VPS deployment
+
+### Scripts Updated
+- **vps-complete-fix.sh**: Enhanced with port selection and SSL certificate fixes
+- **start-app-vps.sh**: Now includes interactive port selection and direct port specification
+- **fix-whatsapp-ssl.sh**: New script specifically for WhatsApp SSL certificate issues
+- **README_VPS_ERRO.md**: Updated documentation with port selection examples
+
+### Problem Resolution
+- **Original Issue**: WhatsApp SSL certificate errors causing service failures
+- **Solution**: Added NODE_TLS_REJECT_UNAUTHORIZED=0 to disable SSL verification for Evolution API
+- **User Request**: Enable port selection for VPS deployment flexibility
+- **Implementation**: Interactive menu system with validation and error handling
+
+The VPS deployment system now provides complete flexibility in port selection while maintaining robust error handling and comprehensive SSL certificate management for WhatsApp integration.

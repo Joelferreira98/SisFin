@@ -13,9 +13,14 @@ Na sua VPS, execute **apenas um comando**:
 wget https://raw.githubusercontent.com/Joelferreira98/SisFin/main/vps-complete-fix.sh && chmod +x vps-complete-fix.sh && ./vps-complete-fix.sh
 ```
 
-Depois execute:
+Depois execute (com seleção de porta):
 ```bash
 ./start-app-vps.sh
+```
+
+Ou especifique a porta diretamente:
+```bash
+./start-app-vps.sh 8080
 ```
 
 ## 🎯 O que o script faz:
@@ -27,18 +32,30 @@ Depois execute:
 5. ✅ Reinstala dependências
 6. ✅ Aplica schema do banco
 7. ✅ Testa a aplicação
-8. ✅ Cria script de inicialização
+8. ✅ Cria script de inicialização com seleção de porta
+9. ✅ Corrige erros SSL do WhatsApp (Evolution API)
 
 ## 🎉 Resultado esperado:
 
 ```
 🚀 Iniciando aplicação SisFin na VPS...
+🔧 Escolha a porta para a aplicação:
+1) 5000 (padrão)
+2) 3000
+3) 8080
+4) 80 (requer sudo)
+5) Personalizada
+
+Escolha uma opção (1-5): 1
+
 ✅ Variáveis configuradas:
 DATABASE_URL: postgresql://financeuser:financepass123@localhost:5432/financedb
 NODE_ENV: development
+PORT: 5000
 
 🎯 Acesso: http://SEU-IP:5000
 🔑 Usuário: Joel | Senha: 123456
+💡 Para usar outra porta: ./start-app-vps.sh PORTA
 
 > rest-express@1.0.0 dev
 > NODE_ENV=development tsx server/index.ts
