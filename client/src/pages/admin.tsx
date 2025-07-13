@@ -6,6 +6,7 @@ import Navigation from "@/components/layout/navigation";
 import AdminStats from "@/components/admin/admin-stats";
 import UserManagement from "@/components/admin/user-management";
 import PlanManagement from "@/components/admin/plan-management";
+import SystemSettings from "@/components/admin/system-settings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -170,56 +171,7 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Configurações do Sistema
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">
-                      <Database className="h-4 w-4 inline mr-2" />
-                      Banco de Dados
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Configurar backups automáticos e políticas de retenção
-                    </p>
-                    <Button variant="outline" size="sm">
-                      Configurar Backup
-                    </Button>
-                  </div>
-
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">
-                      <Shield className="h-4 w-4 inline mr-2" />
-                      Segurança
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Configurar políticas de segurança e autenticação
-                    </p>
-                    <Button variant="outline" size="sm">
-                      Configurar Segurança
-                    </Button>
-                  </div>
-
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">
-                      <Bell className="h-4 w-4 inline mr-2" />
-                      Notificações
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Configurar notificações automáticas e alertas
-                    </p>
-                    <Button variant="outline" size="sm">
-                      Configurar Notificações
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <SystemSettings />
           </TabsContent>
         </Tabs>
       </div>

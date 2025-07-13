@@ -269,6 +269,16 @@ export const userWhatsappInstancesRelations = relations(userWhatsappInstances, (
   user: one(users, { fields: [userWhatsappInstances.userId], references: [users.id] }),
 }));
 
+// System Settings table
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  key: varchar("key").notNull().unique(),
+  value: text("value").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertPlanSchema = createInsertSchema(plans).omit({
   id: true,
   createdAt: true,
@@ -301,6 +311,12 @@ export const insertUserWhatsappInstanceSchema = createInsertSchema(userWhatsappI
   updatedAt: true,
 });
 
+export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type Plan = typeof plans.$inferSelect;
 export type InsertPlan = z.infer<typeof insertPlanSchema>;
 export type UserSubscription = typeof userSubscriptions.$inferSelect;
@@ -309,3 +325,5 @@ export type InstallmentSale = typeof installmentSales.$inferSelect;
 export type InsertInstallmentSale = z.infer<typeof insertInstallmentSaleSchema>;
 export type UserWhatsappInstance = typeof userWhatsappInstances.$inferSelect;
 export type InsertUserWhatsappInstance = z.infer<typeof insertUserWhatsappInstanceSchema>;
+export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;

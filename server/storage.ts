@@ -8,6 +8,7 @@ import {
   userSubscriptions,
   installmentSales,
   userWhatsappInstances,
+  systemSettings,
   type User,
   type InsertUser,
   type Client,
@@ -26,6 +27,8 @@ import {
   type InsertInstallmentSale,
   type UserWhatsappInstance,
   type InsertUserWhatsappInstance,
+  type SystemSetting,
+  type InsertSystemSetting,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, or } from "drizzle-orm";
@@ -94,6 +97,12 @@ export interface IStorage {
   updateUserWhatsappInstance(instanceId: number, instance: Partial<UserWhatsappInstance>, userId: number): Promise<UserWhatsappInstance>;
   deleteUserWhatsappInstance(instanceId: number, userId: number): Promise<void>;
   getUserWhatsappInstanceByName(instanceName: string, userId: number): Promise<UserWhatsappInstance | undefined>;
+  
+  // System settings
+  getSystemSetting(key: string): Promise<SystemSetting | undefined>;
+  setSystemSetting(key: string, value: string, description?: string): Promise<SystemSetting>;
+  getAllSystemSettings(): Promise<SystemSetting[]>;
+  deleteSystemSetting(key: string): Promise<void>;
   
   // Dashboard operations
   getDashboardData(userId: number): Promise<{
@@ -802,6 +811,32 @@ export class DatabaseStorage implements IStorage {
         eq(userWhatsappInstances.userId, userId)
       ),
     });
+  }
+
+  // System settings operations
+  async getSystemSetting(key: string): Promise<SystemSetting | undefined> {
+    const [setting] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
+    return setting;
+  }
+
+  async setSystemSetting(key: string, value: string, description?: string): Promise<SystemSetting> {
+    const [setting] = await db
+      .insert(systemSettings)
+      .values({ key, value, description })
+      .onConflictDoUpdate({
+        target: systemSettings.key,
+        set: { value, description, updatedAt: new Date() },
+      })
+      .returning();
+    return setting;
+  }
+
+  async getAllSystemSettings(): Promise<SystemSetting[]> {
+    return await db.select().from(systemSettings).orderBy(systemSettings.key);
+  }
+
+  async deleteSystemSetting(key: string): Promise<void> {
+    await db.delete(systemSettings).where(eq(systemSettings.key, key));
   }
 }
 

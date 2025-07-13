@@ -772,6 +772,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // System Settings endpoints
+  app.get("/api/admin/settings", isAdmin, async (req: any, res) => {
+    try {
+      const settings = await storage.getAllSystemSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.get("/api/admin/settings/:key", isAdmin, async (req: any, res) => {
+    try {
+      const key = req.params.key;
+      const setting = await storage.getSystemSetting(key);
+      if (!setting) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
+      res.json(setting);
+    } catch (error) {
+      console.error("Error fetching setting:", error);
+      res.status(500).json({ message: "Failed to fetch setting" });
+    }
+  });
+
+  app.post("/api/admin/settings", isAdmin, async (req: any, res) => {
+    try {
+      const { key, value, description } = req.body;
+      const setting = await storage.setSystemSetting(key, value, description);
+      res.json(setting);
+    } catch (error) {
+      console.error("Error setting system setting:", error);
+      res.status(500).json({ message: "Failed to set system setting" });
+    }
+  });
+
+  app.delete("/api/admin/settings/:key", isAdmin, async (req: any, res) => {
+    try {
+      const key = req.params.key;
+      await storage.deleteSystemSetting(key);
+      res.json({ message: "Setting deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting setting:", error);
+      res.status(500).json({ message: "Failed to delete setting" });
+    }
+  });
+
   // Plan routes
   app.get("/api/plans", isAuthenticated, async (req: any, res) => {
     try {

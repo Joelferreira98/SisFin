@@ -156,7 +156,14 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
       currency: 'BRL',
     });
 
-    const confirmationLink = `${process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : 'http://localhost:5000'}/confirm-sale/${confirmationToken}`;
+    // Get base URL from system settings or use fallback
+    const domainSetting = await storage.getSystemSetting('base_url');
+    const baseUrl = domainSetting?.value || 
+      (process.env.NODE_ENV === 'production' 
+        ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}`
+        : 'http://localhost:5000');
+    
+    const confirmationLink = `${baseUrl}/confirm-sale/${confirmationToken}`;
 
     const message = `Olá ${clientName}! 📋
 
@@ -246,10 +253,12 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
       currency: 'BRL',
     });
 
-    // Determine the base URL based on environment
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}`
-      : 'http://localhost:5000';
+    // Get base URL from system settings or use fallback
+    const domainSetting = await storage.getSystemSetting('base_url');
+    const baseUrl = domainSetting?.value || 
+      (process.env.NODE_ENV === 'production' 
+        ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}`
+        : 'http://localhost:5000');
     
     const confirmationUrl = `${baseUrl}/confirm-sale/${confirmationToken}`;
 
