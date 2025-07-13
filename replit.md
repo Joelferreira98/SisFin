@@ -304,3 +304,32 @@ The automatic WhatsApp messaging system is now fully operational, providing seam
 - **Complete Transparency**: Full communication trail available in WhatsApp messages history
 
 The WhatsApp notification system now provides complete end-to-end communication for the installment sales process, ensuring clients are always informed of their sale status.
+
+## Latest Updates (July 13, 2025 - Enhanced Rejection Flow)
+
+### Advanced Rejection Handling with Link Regeneration
+- **Smart Rejection Flow**: When sales are rejected, status resets to "pending" allowing client resubmission
+- **Automatic Link Regeneration**: Rejection notifications include new confirmation links for corrections
+- **Document Reset**: Previous document photos are cleared on rejection to allow fresh submissions
+- **WhatsApp Integration**: Automatic link resending via WhatsApp when regenerating tokens
+
+### New Features
+- **Resubmission Workflow**: Clients can correct issues and resubmit documents using new links
+- **Token Regeneration**: Admin can manually regenerate confirmation tokens for rejected sales
+- **Enhanced UI**: Added "Reenviar Link" button in rejected sales tab for easy link resending
+- **Automatic Messaging**: New confirmation links are automatically sent via WhatsApp when regenerated
+
+### Technical Implementation
+- **Database Updates**: Clear document fields on rejection to allow fresh submissions
+- **API Endpoints**: Added /api/installment-sales/:id/regenerate-token endpoint for token regeneration
+- **WhatsApp Service**: Enhanced rejection notifications to include new confirmation links
+- **Error Handling**: Robust error handling ensures process continues even if WhatsApp fails
+- **Status Management**: Intelligent status transitions from rejected back to pending
+
+### User Experience Improvements
+- **Seamless Recovery**: Clients can easily fix issues and resubmit without starting over
+- **Clear Communication**: Rejection messages include specific reasons and next steps
+- **Admin Controls**: Simple interface for admins to trigger link regeneration
+- **Real-time Updates**: Instant status updates and link regeneration with live feedback
+
+The enhanced rejection flow ensures no sales are permanently lost due to initial document issues, providing a complete recovery path for clients while maintaining admin control.

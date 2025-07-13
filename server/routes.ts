@@ -610,10 +610,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { approved, notes } = req.body;
       
       const sale = await storage.updateInstallmentSale(saleId, {
-        status: approved ? "approved" : "rejected",
+        status: approved ? "approved" : "pending", // Reset to pending if rejected to allow resubmission
         userReviewedAt: new Date(),
         userApprovedAt: approved ? new Date() : null,
-        notes
+        notes,
+        // Clear previous document if rejected to allow new submission
+        documentPhotoUrl: approved ? undefined : null,
+        clientSignedAt: approved ? undefined : null
       }, userId);
       
       // If approved, create receivables for each installment
@@ -646,6 +649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 sale.description,
                 sale.totalAmount,
                 notes || 'Não especificado',
+                sale.confirmationToken,
                 userId
               );
               console.log(`Rejection notification sent to ${client.name} (${client.whatsapp})`);
@@ -661,6 +665,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating sale status:", error);
       res.status(500).json({ message: "Failed to update sale status" });
+    }
+  });
+
+  // Regenerate confirmation token for resubmission
+  app.post('/api/installment-sales/:id/regenerate-token', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const saleId = parseInt(req.params.id);
+      
+      const newToken = storage.generateConfirmationToken();
+      const sale = await storage.updateInstallmentSale(saleId, {
+        confirmationToken: newToken,
+        status: "pending",
+        documentPhotoUrl: null,
+        clientSignedAt: null,
+        userReviewedAt: null,
+        userApprovedAt: null,
+        notes: null
+      }, userId);
+      
+      // Send new confirmation link via WhatsApp
+      const client = await storage.getClient(sale.clientId, userId);
+      if (client && client.whatsapp) {
+        const whatsappService = getWhatsAppService();
+        if (whatsappService) {
+          try {
+            await whatsappService.sendInstallmentConfirmationRequest(
+              client.id,
+              client.name,
+              client.whatsapp,
+              sale.description,
+              sale.totalAmount,
+              sale.installmentCount,
+              newToken,
+              userId
+            );
+            console.log(`New confirmation link sent to ${client.name} (${client.whatsapp})`);
+          } catch (whatsappError) {
+            console.error('Error sending WhatsApp confirmation:', whatsappError);
+            // Don't fail the token regeneration if WhatsApp fails
+          }
+        }
+      }
+      
+      res.json({ token: newToken, sale });
+    } catch (error) {
+      console.error("Error regenerating token:", error);
+      res.status(500).json({ message: "Failed to regenerate token" });
     }
   });
 

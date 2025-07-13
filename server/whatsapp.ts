@@ -240,11 +240,18 @@ _Mensagem automática - Sistema de Gestão Financeira_`;
     return success;
   }
 
-  async sendSaleRejectionNotification(clientId: number, clientName: string, phoneNumber: string, description: string, totalAmount: number, rejectionReason: string, userId: number): Promise<boolean> {
+  async sendSaleRejectionNotification(clientId: number, clientName: string, phoneNumber: string, description: string, totalAmount: number, rejectionReason: string, confirmationToken: string, userId: number): Promise<boolean> {
     const formattedAmount = totalAmount.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     });
+
+    // Determine the base URL based on environment
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}`
+      : 'http://localhost:5000';
+    
+    const confirmationUrl = `${baseUrl}/confirm-sale/${confirmationToken}`;
 
     const message = `Olá ${clientName}!
 
@@ -255,7 +262,8 @@ Infelizmente, sua venda parcelada foi REJEITADA. ❌
 
 ${rejectionReason ? `Motivo: ${rejectionReason}` : ''}
 
-Para mais informações ou para tentar novamente, entre em contato conosco.
+Você pode corrigir as observações e enviar novamente clicando no link abaixo:
+${confirmationUrl}
 
 _Mensagem automática - Sistema de Gestão Financeira_`;
 

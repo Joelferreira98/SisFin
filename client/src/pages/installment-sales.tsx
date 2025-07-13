@@ -23,7 +23,8 @@ import {
   Calendar,
   User,
   FileText,
-  Link as LinkIcon
+  Link as LinkIcon,
+  RefreshCw
 } from "lucide-react";
 import { format } from "date-fns";
 import { InstallmentSale, Client } from "@shared/schema";
@@ -114,6 +115,27 @@ export default function InstallmentSales() {
       description: "Link copiado para a área de transferência",
     });
   };
+
+  const resendConfirmationLink = useMutation({
+    mutationFn: async (saleId: number) => {
+      const response = await apiRequest('POST', `/api/installment-sales/${saleId}/regenerate-token`);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Link reenviado!",
+        description: "Um novo link de confirmação foi gerado e enviado ao cliente.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/installment-sales"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao reenviar link",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -350,16 +372,27 @@ export default function InstallmentSales() {
                       </TableCell>
                       <TableCell>{getStatusBadge(sale.status)}</TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedSale(sale);
-                            setIsViewModalOpen(true);
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedSale(sale);
+                              setIsViewModalOpen(true);
+                            }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => resendConfirmationLink.mutate(sale.id)}
+                            disabled={resendConfirmationLink.isPending}
+                          >
+                            <RefreshCw className="w-4 h-4 mr-1" />
+                            Reenviar Link
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
