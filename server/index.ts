@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { reminderService } from "./reminder-service";
+import { planBillingService } from "./plan-billing-service";
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
@@ -70,5 +71,7 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
     // Inicia o serviço de lembretes automáticos
     reminderService.start();
+    // Inicia o serviço de cobrança de planos
+    planBillingService.start();
   });
 })();

@@ -11,6 +11,8 @@ import SystemSettings from "@/components/admin/system-settings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useMutation, queryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   Settings,
   BarChart3,
@@ -18,12 +20,34 @@ import {
   MessageSquare,
   Shield,
   Database,
-  Bell
+  Bell,
+  CreditCard
 } from "lucide-react";
 
 export default function Admin() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading, isAdmin } = useAuth();
+
+  const triggerBillingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/billing/trigger");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Cobrança mensal disparada",
+        description: "As cobranças recorrentes dos planos foram geradas com sucesso",
+        variant: "default",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao gerar cobranças",
+        description: error.message || "Falha ao gerar cobranças mensais",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -86,7 +110,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Visão Geral
@@ -102,6 +126,10 @@ export default function Admin() {
             <TabsTrigger value="plan-requests" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
               Solicitações
+            </TabsTrigger>
+            <TabsTrigger value="billing" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Cobrança
             </TabsTrigger>
             <TabsTrigger value="whatsapp" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
@@ -127,6 +155,48 @@ export default function Admin() {
 
           <TabsContent value="plan-requests" className="space-y-6">
             <PlanChangeRequests />
+          </TabsContent>
+
+          <TabsContent value="billing" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Cobrança de Planos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Cobrança Mensal Automática
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-4">
+                      O sistema gera automaticamente cobranças mensais no dia 1° de cada mês para todos os usuários com planos ativos.
+                    </p>
+                    <Button 
+                      onClick={() => triggerBillingMutation.mutate()}
+                      disabled={triggerBillingMutation.isPending}
+                      className="w-full sm:w-auto"
+                    >
+                      {triggerBillingMutation.isPending ? "Gerando..." : "Gerar Cobrança Manual"}
+                    </Button>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg bg-blue-50">
+                    <h4 className="font-medium text-blue-900 mb-2">
+                      Como Funciona
+                    </h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Verifica todos os usuários com planos ativos</li>
+                      <li>• Gera contas a receber para o mês atual</li>
+                      <li>• Evita duplicação de cobranças</li>
+                      <li>• Executado automaticamente todo dia 1°</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="whatsapp" className="space-y-6">

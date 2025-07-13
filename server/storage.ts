@@ -40,7 +40,7 @@ import {
   type InsertPlanChangeRequest,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, or, exists } from "drizzle-orm";
+import { eq, and, desc, asc, sql, or, exists, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for custom auth)
@@ -1142,6 +1142,148 @@ export class DatabaseStorage implements IStorage {
       endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
       isActive: true
     });
+
+    // Create automatic recurring receivable for the plan
+    await this.createPlanRecurringReceivable(request.userId, request.requestedPlan);
+  }
+
+  async createPlanRecurringReceivable(userId: number, plan: any): Promise<void> {
+    // Get user information
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    // Check if user already has a client record for themselves (for plan billing)
+    let systemClient = await db.query.clients.findFirst({
+      where: and(
+        eq(clients.userId, userId),
+        eq(clients.document, 'SYSTEM')
+      )
+    });
+
+    // If no system client exists, create one for plan billing
+    if (!systemClient) {
+      const [newClient] = await db.insert(clients).values({
+        userId,
+        name: `${user.firstName} ${user.lastName}`,
+        whatsapp: user.phone || '',
+        document: 'SYSTEM',
+        email: user.email,
+        address: 'Cobrança de Plano',
+        city: 'Sistema',
+        state: 'Sistema',
+      }).returning();
+      systemClient = newClient;
+    }
+
+    // Check if there's already a pending receivable for this plan
+    const existingReceivable = await db.query.receivables.findFirst({
+      where: and(
+        eq(receivables.userId, userId),
+        eq(receivables.clientId, systemClient.id),
+        eq(receivables.type, 'recurring'),
+        eq(receivables.status, 'pending')
+      )
+    });
+
+    // Only create if there's no existing pending receivable
+    if (!existingReceivable) {
+      // Create recurring receivable for the plan - first payment due next month
+      const nextDueDate = new Date();
+      nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+
+      await db.insert(receivables).values({
+        userId,
+        clientId: systemClient.id,
+        description: `Mensalidade do Plano ${plan.name}`,
+        amount: plan.price,
+        dueDate: nextDueDate,
+        status: 'pending',
+        type: 'recurring',
+        installmentNumber: 1,
+        totalInstallments: 12, // 12 months
+      });
+    }
+  }
+
+  // Generate next month's plan receivables for all active subscriptions
+  async generateMonthlyPlanReceivables(): Promise<void> {
+    const activeSubscriptions = await db.query.userSubscriptions.findMany({
+      where: eq(userSubscriptions.isActive, true),
+      with: {
+        user: true,
+        plan: true,
+      }
+    });
+
+    for (const subscription of activeSubscriptions) {
+      const user = subscription.user;
+      const plan = subscription.plan;
+      
+      // Skip free plans
+      if (parseFloat(plan.price) === 0) {
+        continue;
+      }
+
+      // Find or create system client for this user
+      let systemClient = await db.query.clients.findFirst({
+        where: and(
+          eq(clients.userId, user.id),
+          eq(clients.document, 'SYSTEM')
+        )
+      });
+
+      if (!systemClient) {
+        const [newClient] = await db.insert(clients).values({
+          userId: user.id,
+          name: `${user.firstName} ${user.lastName}`,
+          whatsapp: user.phone || '',
+          document: 'SYSTEM',
+          email: user.email,
+          address: 'Cobrança de Plano',
+          city: 'Sistema',
+          state: 'Sistema',
+        }).returning();
+        systemClient = newClient;
+      }
+
+      // Check if there's already a pending receivable for next month
+      const nextMonth = new Date();
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      const nextMonthStart = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1);
+      const nextMonthEnd = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0);
+
+      const existingReceivable = await db.query.receivables.findFirst({
+        where: and(
+          eq(receivables.userId, user.id),
+          eq(receivables.clientId, systemClient.id),
+          eq(receivables.type, 'recurring'),
+          eq(receivables.status, 'pending'),
+          and(
+            gte(receivables.dueDate, nextMonthStart),
+            lte(receivables.dueDate, nextMonthEnd)
+          )
+        )
+      });
+
+      // Only create if there's no existing receivable for next month
+      if (!existingReceivable) {
+        const dueDate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 5); // 5th of next month
+        
+        await db.insert(receivables).values({
+          userId: user.id,
+          clientId: systemClient.id,
+          description: `Mensalidade do Plano ${plan.name}`,
+          amount: plan.price,
+          dueDate: dueDate,
+          status: 'pending',
+          type: 'recurring',
+          installmentNumber: 1,
+          totalInstallments: 12,
+        });
+      }
+    }
   }
 
   async rejectPlanChangeRequest(id: number, adminId: number, adminResponse?: string): Promise<void> {

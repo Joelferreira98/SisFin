@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
 import { getWhatsAppService } from "./whatsapp";
+import { planBillingService } from "./plan-billing-service";
 import { insertClientSchema, insertReceivableSchema, insertPayableSchema, insertPlanSchema, insertInstallmentSaleSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -921,6 +922,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error rejecting plan change request:", error);
       res.status(500).json({ error: "Erro ao rejeitar solicitação de mudança de plano" });
+    }
+  });
+
+  // Plan Billing Service endpoints
+  app.post("/api/admin/billing/trigger", isAdmin, async (req: any, res) => {
+    try {
+      await planBillingService.triggerMonthlyBilling();
+      res.json({ message: "Monthly billing generated successfully" });
+    } catch (error) {
+      console.error("Error triggering monthly billing:", error);
+      res.status(500).json({ message: "Failed to trigger monthly billing" });
     }
   });
 
