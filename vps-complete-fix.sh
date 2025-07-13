@@ -39,9 +39,9 @@ echo "============================================"
 echo -e "${NC}"
 
 # Verificar se está rodando como root
-if [[ $EUID -eq 0 ]]; then
-   error "Este script não deve ser executado como root. Use um usuário normal com sudo."
-fi
+#if [[ $EUID -eq 0 ]]; then
+#   error "Este script não deve ser executado como root. Use um usuário normal com sudo."
+#fi
 
 # Função para verificar se comando existe
 command_exists() {
