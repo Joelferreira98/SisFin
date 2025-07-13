@@ -11,6 +11,7 @@ import {
   systemSettings,
   paymentReminders,
   reminderLogs,
+  planChangeRequests,
   type User,
   type InsertUser,
   type Client,
@@ -35,6 +36,8 @@ import {
   type InsertPaymentReminder,
   type ReminderLog,
   type InsertReminderLog,
+  type PlanChangeRequest,
+  type InsertPlanChangeRequest,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, or, exists } from "drizzle-orm";
@@ -70,6 +73,15 @@ export interface IStorage {
   getUserSubscriptions(userId: number): Promise<(UserSubscription & { plan: Plan })[]>;
   createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription>;
   updateUserSubscription(id: number, subscription: Partial<InsertUserSubscription>): Promise<UserSubscription>;
+  
+  // Plan change requests operations
+  createPlanChangeRequest(request: InsertPlanChangeRequest, userId: number): Promise<PlanChangeRequest>;
+  getUserPlanChangeRequests(userId: number): Promise<(PlanChangeRequest & { currentPlan: Plan | null, requestedPlan: Plan, user: User })[]>;
+  getAllPlanChangeRequests(): Promise<(PlanChangeRequest & { currentPlan: Plan | null, requestedPlan: Plan, user: User })[]>;
+  getPlanChangeRequest(id: number): Promise<(PlanChangeRequest & { currentPlan: Plan | null, requestedPlan: Plan, user: User }) | undefined>;
+  updatePlanChangeRequest(id: number, request: Partial<PlanChangeRequest>): Promise<PlanChangeRequest>;
+  approvePlanChangeRequest(id: number, adminId: number, adminResponse?: string): Promise<void>;
+  rejectPlanChangeRequest(id: number, adminId: number, adminResponse?: string): Promise<void>;
   
   // Admin check
   isUserAdmin(userId: number): Promise<boolean>;
@@ -1034,6 +1046,111 @@ export class DatabaseStorage implements IStorage {
       .values(log)
       .returning();
     return newLog;
+  }
+
+  // Plan change requests operations
+  async createPlanChangeRequest(request: InsertPlanChangeRequest, userId: number): Promise<PlanChangeRequest> {
+    const [planChangeRequest] = await db
+      .insert(planChangeRequests)
+      .values({
+        ...request,
+        userId,
+      })
+      .returning();
+    return planChangeRequest;
+  }
+
+  async getUserPlanChangeRequests(userId: number): Promise<(PlanChangeRequest & { currentPlan: Plan | null, requestedPlan: Plan, user: User })[]> {
+    const results = await db.query.planChangeRequests.findMany({
+      where: eq(planChangeRequests.userId, userId),
+      with: {
+        user: true,
+        currentPlan: true,
+        requestedPlan: true,
+      },
+      orderBy: [desc(planChangeRequests.createdAt)],
+    });
+    
+    return results as any;
+  }
+
+  async getAllPlanChangeRequests(): Promise<(PlanChangeRequest & { currentPlan: Plan | null, requestedPlan: Plan, user: User })[]> {
+    const results = await db.query.planChangeRequests.findMany({
+      with: {
+        user: true,
+        currentPlan: true,
+        requestedPlan: true,
+      },
+      orderBy: [desc(planChangeRequests.createdAt)],
+    });
+    
+    return results as any;
+  }
+
+  async getPlanChangeRequest(id: number): Promise<(PlanChangeRequest & { currentPlan: Plan | null, requestedPlan: Plan, user: User }) | undefined> {
+    const result = await db.query.planChangeRequests.findFirst({
+      where: eq(planChangeRequests.id, id),
+      with: {
+        user: true,
+        currentPlan: true,
+        requestedPlan: true,
+      },
+    });
+    
+    return result as any;
+  }
+
+  async updatePlanChangeRequest(id: number, request: Partial<PlanChangeRequest>): Promise<PlanChangeRequest> {
+    const [updated] = await db
+      .update(planChangeRequests)
+      .set({
+        ...request,
+        updatedAt: new Date(),
+      })
+      .where(eq(planChangeRequests.id, id))
+      .returning();
+    return updated;
+  }
+
+  async approvePlanChangeRequest(id: number, adminId: number, adminResponse?: string): Promise<void> {
+    const request = await this.getPlanChangeRequest(id);
+    if (!request) {
+      throw new Error('Solicitação de mudança de plano não encontrada');
+    }
+
+    // Update request status
+    await this.updatePlanChangeRequest(id, {
+      status: 'approved',
+      adminResponse,
+      reviewedAt: new Date(),
+      reviewedBy: adminId,
+    });
+
+    // Deactivate current subscription
+    const currentSubscriptions = await this.getUserSubscriptions(request.userId);
+    const currentActive = currentSubscriptions.find(sub => sub.isActive);
+    
+    if (currentActive) {
+      await this.updateUserSubscription(currentActive.id, { isActive: false });
+    }
+    
+    // Create new subscription
+    await this.createUserSubscription({
+      userId: request.userId,
+      planId: request.requestedPlanId,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+      isActive: true
+    });
+  }
+
+  async rejectPlanChangeRequest(id: number, adminId: number, adminResponse?: string): Promise<void> {
+    await this.updatePlanChangeRequest(id, {
+      status: 'rejected',
+      adminResponse,
+      reviewedAt: new Date(),
+      reviewedBy: adminId,
+    });
   }
 }
 

@@ -853,6 +853,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Plan change request routes
+  app.post("/api/plan-change-requests", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const requestData = req.body;
+      
+      // Get user's current plan
+      const userSubs = await storage.getUserSubscriptions(userId);
+      const currentSub = userSubs.find(sub => sub.isActive);
+      
+      const request = await storage.createPlanChangeRequest({
+        ...requestData,
+        currentPlanId: currentSub?.planId || null,
+      }, userId);
+      
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Error creating plan change request:", error);
+      res.status(500).json({ error: "Erro ao criar solicitação de mudança de plano" });
+    }
+  });
+
+  app.get("/api/plan-change-requests", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const requests = await storage.getUserPlanChangeRequests(userId);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching plan change requests:", error);
+      res.status(500).json({ error: "Erro ao buscar solicitações de mudança de plano" });
+    }
+  });
+
+  app.get("/api/admin/plan-change-requests", isAdmin, async (req: any, res) => {
+    try {
+      const requests = await storage.getAllPlanChangeRequests();
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching all plan change requests:", error);
+      res.status(500).json({ error: "Erro ao buscar todas as solicitações de mudança de plano" });
+    }
+  });
+
+  app.post("/api/admin/plan-change-requests/:id/approve", isAdmin, async (req: any, res) => {
+    try {
+      const requestId = parseInt(req.params.id);
+      const adminId = req.user.claims.sub;
+      const { adminResponse } = req.body;
+      
+      await storage.approvePlanChangeRequest(requestId, adminId, adminResponse);
+      res.json({ message: "Solicitação aprovada com sucesso" });
+    } catch (error) {
+      console.error("Error approving plan change request:", error);
+      res.status(500).json({ error: "Erro ao aprovar solicitação de mudança de plano" });
+    }
+  });
+
+  app.post("/api/admin/plan-change-requests/:id/reject", isAdmin, async (req: any, res) => {
+    try {
+      const requestId = parseInt(req.params.id);
+      const adminId = req.user.claims.sub;
+      const { adminResponse } = req.body;
+      
+      await storage.rejectPlanChangeRequest(requestId, adminId, adminResponse);
+      res.json({ message: "Solicitação rejeitada com sucesso" });
+    } catch (error) {
+      console.error("Error rejecting plan change request:", error);
+      res.status(500).json({ error: "Erro ao rejeitar solicitação de mudança de plano" });
+    }
+  });
+
   // System Settings endpoints
   app.get("/api/admin/settings", isAdmin, async (req: any, res) => {
     try {

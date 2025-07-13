@@ -225,6 +225,29 @@ export const userSubscriptionsRelations = relations(userSubscriptions, ({ one })
   }),
 }));
 
+// Plan change requests table
+export const planChangeRequests = pgTable("plan_change_requests", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  currentPlanId: integer("current_plan_id").references(() => plans.id, { onDelete: "cascade" }),
+  requestedPlanId: integer("requested_plan_id").references(() => plans.id, { onDelete: "cascade" }).notNull(),
+  status: varchar("status", { length: 50 }).default("pending").notNull(), // pending, approved, rejected
+  userMessage: text("user_message"), // Message from user explaining why they need the plan change
+  adminResponse: text("admin_response"), // Admin response when approving/rejecting
+  requestedAt: timestamp("requested_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const planChangeRequestsRelations = relations(planChangeRequests, ({ one }) => ({
+  user: one(users, { fields: [planChangeRequests.userId], references: [users.id] }),
+  currentPlan: one(plans, { fields: [planChangeRequests.currentPlanId], references: [plans.id] }),
+  requestedPlan: one(plans, { fields: [planChangeRequests.requestedPlanId], references: [plans.id] }),
+  reviewedByUser: one(users, { fields: [planChangeRequests.reviewedBy], references: [users.id] }),
+}));
+
 // Installment Sales table
 export const installmentSales = pgTable("installment_sales", {
   id: serial("id").primaryKey(),
@@ -370,6 +393,16 @@ export const insertReminderLogSchema = createInsertSchema(reminderLogs).omit({
   createdAt: true,
 });
 
+export const insertPlanChangeRequestSchema = createInsertSchema(planChangeRequests).omit({
+  id: true,
+  userId: true,
+  requestedAt: true,
+  reviewedAt: true,
+  reviewedBy: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type Plan = typeof plans.$inferSelect;
 export type InsertPlan = z.infer<typeof insertPlanSchema>;
 export type UserSubscription = typeof userSubscriptions.$inferSelect;
@@ -380,6 +413,8 @@ export type UserWhatsappInstance = typeof userWhatsappInstances.$inferSelect;
 export type InsertUserWhatsappInstance = z.infer<typeof insertUserWhatsappInstanceSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
+export type PlanChangeRequest = typeof planChangeRequests.$inferSelect;
+export type InsertPlanChangeRequest = z.infer<typeof insertPlanChangeRequestSchema>;
 export type PaymentReminder = typeof paymentReminders.$inferSelect;
 export type InsertPaymentReminder = z.infer<typeof insertPaymentReminderSchema>;
 export type ReminderLog = typeof reminderLogs.$inferSelect;

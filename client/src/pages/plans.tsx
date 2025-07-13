@@ -34,6 +34,7 @@ export default function PlansPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
+  const [userMessage, setUserMessage] = useState<string>('');
 
   const { data: plans = [], isLoading: plansLoading } = useQuery<Plan[]>({
     queryKey: ['/api/plans'],
@@ -45,24 +46,28 @@ export default function PlansPage() {
     enabled: !!user
   });
 
-  const changePlanMutation = useMutation({
-    mutationFn: async (planId: number) => {
-      const response = await apiRequest('POST', '/api/user/subscriptions', { planId });
+  const { data: planChangeRequests = [], isLoading: requestsLoading } = useQuery({
+    queryKey: ['/api/plan-change-requests'],
+    enabled: !!user
+  });
+
+  const requestPlanChangeMutation = useMutation({
+    mutationFn: async (data: { requestedPlanId: number; userMessage?: string }) => {
+      const response = await apiRequest('POST', '/api/plan-change-requests', data);
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Plano alterado com sucesso",
-        description: "Seu plano foi alterado e já está ativo.",
+        title: "Solicitação enviada com sucesso",
+        description: "Sua solicitação de mudança de plano foi enviada para análise do admin.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user/subscriptions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/plan-change-requests'] });
       setSelectedPlan(null);
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao alterar plano",
-        description: error.message || "Ocorreu um erro ao alterar o plano.",
+        title: "Erro ao solicitar mudança de plano",
+        description: error.message || "Ocorreu um erro ao enviar a solicitação.",
         variant: "destructive",
       });
     }
@@ -190,10 +195,10 @@ export default function PlansPage() {
                 
                 <Button 
                   className="w-full" 
-                  disabled={currentPlan?.id === plan.id || changePlanMutation.isPending}
+                  disabled={currentPlan?.id === plan.id || requestPlanChangeMutation.isPending}
                   onClick={() => setSelectedPlan(plan.id)}
                 >
-                  {currentPlan?.id === plan.id ? 'Plano Atual' : 'Escolher Plano'}
+                  {currentPlan?.id === plan.id ? 'Plano Atual' : 'Solicitar Mudança'}
                 </Button>
               </div>
             </CardContent>
@@ -204,26 +209,100 @@ export default function PlansPage() {
       {selectedPlan && (
         <Card className="mt-8 border-amber-200 bg-amber-50">
           <CardHeader>
-            <CardTitle className="text-amber-800">Confirmar Mudança de Plano</CardTitle>
+            <CardTitle className="text-amber-800">Solicitar Mudança de Plano</CardTitle>
             <CardDescription>
-              Tem certeza de que deseja alterar para o plano {plans.find(p => p.id === selectedPlan)?.name}?
+              Sua solicitação será enviada para análise do administrador. Você será notificado quando for aprovada ou rejeitada.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
-              <Button 
-                onClick={() => changePlanMutation.mutate(selectedPlan)}
-                disabled={changePlanMutation.isPending}
-              >
-                {changePlanMutation.isPending ? 'Alterando...' : 'Confirmar Mudança'}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setSelectedPlan(null)}
-                disabled={changePlanMutation.isPending}
-              >
-                Cancelar
-              </Button>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Plano solicitado: {plans.find(p => p.id === selectedPlan)?.name}
+                </label>
+                <label className="block text-sm font-medium mb-2">
+                  Mensagem (opcional):
+                </label>
+                <textarea
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  placeholder="Explique o motivo da mudança de plano..."
+                  value={userMessage}
+                  onChange={(e) => setUserMessage(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-4">
+                <Button 
+                  onClick={() => requestPlanChangeMutation.mutate({ 
+                    requestedPlanId: selectedPlan, 
+                    userMessage: userMessage || undefined 
+                  })}
+                  disabled={requestPlanChangeMutation.isPending}
+                >
+                  {requestPlanChangeMutation.isPending ? 'Enviando...' : 'Enviar Solicitação'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedPlan(null)}
+                  disabled={requestPlanChangeMutation.isPending}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Plan Change Requests History */}
+      {planChangeRequests.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Histórico de Solicitações</CardTitle>
+            <CardDescription>
+              Suas solicitações de mudança de plano anteriores
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {planChangeRequests.map((request: any) => (
+                <div key={request.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="font-medium">
+                        {request.currentPlan?.name || 'Sem plano'} → {request.requestedPlan?.name}
+                      </span>
+                      <Badge 
+                        variant={
+                          request.status === 'approved' ? 'default' : 
+                          request.status === 'rejected' ? 'destructive' : 
+                          'secondary'
+                        }
+                        className="ml-2"
+                      >
+                        {request.status === 'approved' ? 'Aprovado' : 
+                         request.status === 'rejected' ? 'Rejeitado' : 
+                         'Pendente'}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {new Date(request.requestedAt).toLocaleDateString('pt-BR')}
+                    </div>
+                  </div>
+                  
+                  {request.userMessage && (
+                    <div className="text-sm mb-2">
+                      <strong>Mensagem:</strong> {request.userMessage}
+                    </div>
+                  )}
+                  
+                  {request.adminResponse && (
+                    <div className="text-sm text-muted-foreground">
+                      <strong>Resposta do Admin:</strong> {request.adminResponse}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
